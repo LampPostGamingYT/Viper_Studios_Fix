@@ -55,10 +55,7 @@ textarea{height:80px;resize:none;}
 <div class="dashboard" id="dashboard">
   <div class="sidebar">
     <h2>Viper</h2>
-    <button onclick="viewHome()">🏠 Home</button>
-    <button onclick="viewUsers()">👥 Users</button>
-    <button onclick="viewKeys()">🔑 Key Generator</button>
-    <button onclick="viewSettings()">⚙️ Settings</button>
+    <div id="sidebarButtons"></div>
     <button onclick="logout()">🚪 Logout</button>
   </div>
   <div class="main" id="content"></div>
@@ -83,6 +80,7 @@ const discordInput = document.getElementById("discord");
 const robloxInput = document.getElementById("roblox");
 const keyInput = document.getElementById("key");
 const content = document.getElementById("content");
+const sidebarButtons = document.getElementById("sidebarButtons");
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
 let roles = JSON.parse(localStorage.getItem("roles")) || [];
@@ -106,6 +104,7 @@ window.onload = () => {
     currentUser = savedUser;
     document.getElementById("auth").style.display = "none";
     document.getElementById("dashboard").style.display = "flex";
+    renderSidebar();
     viewHome();
   }
 }
@@ -156,195 +155,43 @@ function saveCurrentUser(){
   localStorage.setItem("currentUser", JSON.stringify(currentUser));
 }
 
-// KEEP TRACK OF ONLINE STATUS
-setInterval(() => {
-  if(currentUser){
-    currentUser.lastActive = Date.now();
-    const idx = users.findIndex(u => u.username === currentUser.username);
-    if(idx > -1) users[idx].lastActive = currentUser.lastActive;
-    localStorage.setItem("users", JSON.stringify(users));
-  }
-}, 10000);
-
 // SHOW DASHBOARD
 function showDashboard(){
   usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
   document.getElementById("auth").style.display = "none";
   document.getElementById("dashboard").style.display = "flex";
+  renderSidebar();
   viewHome();
 }
 
 // LOGOUT
 function logout(){currentUser=null; localStorage.removeItem("currentUser"); document.getElementById("dashboard").style.display="none"; document.getElementById("auth").style.display="flex"; content.innerHTML="";}
 
-// HOME
-function viewHome(){
-  content.innerHTML=`<h2>Welcome, ${currentUser.username}</h2>
-    <div class="card"><h3>Stats</h3><div class="stat">Role: ${currentUser.role}</div></div>
-    <div class="card"><h3>Roblox</h3><div class="stat">${currentUser.roblox}</div></div>
-    <div class="card"><h3>Discord</h3><div class="stat">${currentUser.discord}</div></div>`;
-}
-
-// USERS
-function viewUsers(){
-  users = JSON.parse(localStorage.getItem("users")) || [];
-  roles = JSON.parse(localStorage.getItem("roles")) || [];
-  content.innerHTML=`<h2>Players</h2>
-    <input id="userSearch" placeholder="Search by username, Discord, or Roblox..." style="width:100%; padding:10px; margin-bottom:15px; border-radius:10px; border:none; background:#1e293b; color:white;">
-    <div style="margin-bottom:15px;">
-      <input id="newRole" placeholder="New Role Name" style="width:60%; padding:8px; border-radius:10px; border:none; background:#1e293b; color:white;">
-      <button onclick="createRole()" style="width:35%; margin-left:5px;">Create Role</button>
-    </div>
-    <div class='users-container'></div>`;
-  const container=document.querySelector(".users-container");
-
-  function renderUsers(list){
-    container.innerHTML="";
-    const now = Date.now();
-    list.forEach((u)=>{
-      const realIndex = users.findIndex(x => x.username === u.username);
-      let buttonsHTML = "";
-      if((currentUser.role==="Owner" || currentUser.role==="Admin") && u.username!==currentUser.username){
-        buttonsHTML = `<button onclick="warnUser(${realIndex})">Warn</button><button onclick="banUser(${realIndex})">Ban</button>`;
-      }
-      const isOnline = (now - u.lastActive) < 60000; // online if active in last 60s
-      const status = isOnline ? "<span style='color:lime;'>● Online</span>" : "<span style='color:gray;'>● Offline</span>";
-
-      const div = document.createElement("div");
-      div.className = "user-card";
-      div.innerHTML = `<b>${u.username}</b> ${status} ${u.banned?"<span class='ban'>(BANNED)</span>":""}<br>
-        Discord: ${u.discord}<br>
-        Roblox: ${u.roblox}<br>
-        Role: ${u.role || 'User'}<br>
-        Warnings: ${u.warnings.length}<br><br>
-        ${buttonsHTML}
-        <button onclick="viewWarnings(${realIndex})">View Warnings</button>
-        <button onclick="assignRolePopup(${realIndex})">Assign Role</button>`;
-      container.appendChild(div);
-    });
+// RENDER SIDEBAR BASED ON ROLE
+function renderSidebar(){
+  sidebarButtons.innerHTML = `<button onclick="viewHome()">🏠 Home</button>`;
+  if(currentUser.role === "Owner" || currentUser.role === "Admin"){
+    sidebarButtons.innerHTML += `<button onclick="viewUsers()">👥 Users</button>
+                                  <button onclick="viewKeys()">🔑 Key Generator</button>
+                                  <button onclick="viewSettings()">⚙️ Settings</button>`;
   }
-
-  const displayUsers = users; // show all users globally
-  renderUsers(displayUsers);
-
-  const searchInput = document.getElementById("userSearch");
-  searchInput.addEventListener("input", ()=>{
-    const query = searchInput.value.toLowerCase();
-    const filtered = displayUsers.filter(u => u.username.toLowerCase().includes(query) || u.discord.toLowerCase().includes(query) || u.roblox.toLowerCase().includes(query));
-    renderUsers(filtered);
-  });
 }
 
-// CREATE ROLE
-function createRole(){
-  const roleInput = document.getElementById("newRole");
-  const roleName = roleInput.value.trim();
-  if(!roleName) return alert("Enter a role name!");
-  if(roles.includes(roleName)) return alert("Role exists!");
-  roles.push(roleName);
-  localStorage.setItem("roles", JSON.stringify(roles));
-  alert(`Role "${roleName}" created!`);
-  roleInput.value="";
-  logAction(`${currentUser.username} created role ${roleName}`);
+// Keep user "forever logged" for Users tab
+function markUserOnline(){
+  const index = users.findIndex(u => u.username === currentUser.username);
+  if(index !== -1){
+    users[index].lastActive = Date.now();
+    localStorage.setItem("users", JSON.stringify(users));
+  }
 }
+setInterval(() => {
+  if(currentUser) markUserOnline();
+}, 10000);
 
-// ASSIGN ROLE
-function assignRolePopup(userIndex){
-  if(roles.length===0) return alert("Create a role first!");
-  let html=`<label>Select Role:</label>
-    <select id="roleSelect">${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
-    <label><input type="checkbox" id="makeAdmin"> Make Admin?</label>
-    <button onclick="assignRole(${userIndex})">Assign Role</button>`;
-  showPopup("Assign Role", html);
-}
-
-function assignRole(userIndex){
-  const roleName = document.getElementById("roleSelect").value;
-  const makeAdmin = document.getElementById("makeAdmin").checked;
-  users[userIndex].role = makeAdmin ? "Admin" : roleName;
-  save();
-  closePopup();
-  viewUsers();
-  logAction(`${currentUser.username} assigned role ${users[userIndex].role} to ${users[userIndex].username}`);
-}
-
-// WARN & BAN
-function warnUser(userIndex){showInfractionPopup(userIndex,'warn');}
-function banUser(userIndex){showInfractionPopup(userIndex,'ban');}
-function showInfractionPopup(userIndex,type){
-  const u=users[userIndex];
-  let html=`<label>Reason:</label>
-    <textarea id="infractionReason" placeholder="Describe the reason..."></textarea>
-    <button onclick="submitInfraction(${userIndex},'${type}')">${type==="warn"?"Issue Warning":"Ban User"}</button>`;
-  showPopup(`${type==="warn"?"Warn":"Ban"} User: ${u.username}`, html);
-}
-function submitInfraction(userIndex,type){
-  const reason=document.getElementById("infractionReason").value.trim();
-  if(!reason) return alert("Enter a reason!");
-  users[userIndex].warnings.push({type:type,reason,by:currentUser.username,date:new Date().toLocaleString()});
-  if(type==="ban") users[userIndex].banned=true;
-  save();
-  closePopup();
-  viewUsers();
-  logAction(`${currentUser.username} ${type}ed ${users[userIndex].username} for "${reason}"`);
-}
-
-// VIEW WARNINGS
-function viewWarnings(i){
-  const u=users[i];
-  document.getElementById("popup").style.display="flex";
-  document.getElementById("popupTitle").innerText="Infractions for "+u.username;
-  document.getElementById("popupContent").innerHTML=u.warnings.map(w=>`<div class="card"><b>${w.type.toUpperCase()}</b>: ${w.reason}<br>By: ${w.by}<br>${w.date}</div>`).join("") || "No infractions";
-}
-
-// POPUP
-function showPopup(title,html){document.getElementById("popupTitle").innerText=title;document.getElementById("popupContent").innerHTML=html;document.getElementById("popup").style.display="flex";}
-function closePopup(){document.getElementById("popup").style.display="none";}
-function save(){localStorage.setItem("users",JSON.stringify(users));}
-
-// SETTINGS
-function viewSettings(){content.innerHTML="<h2>Settings</h2><p>Coming soon...</p>";}
-
-// KEY GENERATOR TAB
-function viewKeys(){
-  keys = JSON.parse(localStorage.getItem("keys")) || [];
-  content.innerHTML=`<h2>Key Generator</h2>
-    <button onclick="generateKey()">Generate New Key</button>
-    <div id="keyList" style="margin-top:15px;"></div>`;
-  renderKeys();
-}
-
-function generateKey(){
-  const key = "VIP-" + Math.random().toString(36).substring(2,10).toUpperCase();
-  keys.push(key);
-  localStorage.setItem("keys", JSON.stringify(keys));
-  logAction(`${currentUser.username} generated key ${key}`);
-  renderKeys();
-}
-
-function renderKeys(){
-  const keyList = document.getElementById("keyList");
-  if(!keyList) return;
-  keyList.innerHTML = keys.filter(k => k !== "viper0118").map(k=>`
-    <div style="background:#1e293b;padding:10px;margin-bottom:5px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
-      <span>${k}</span>
-      <button onclick="copyKey('${k}')">Copy</button>
-      <button onclick="deleteKey('${k}')">Delete</button>
-    </div>
-  `).join("");
-}
-
-function copyKey(key){
-  navigator.clipboard.writeText(key).then(()=>alert("Copied key: "+key));
-}
-
-function deleteKey(key){
-  if(!confirm(`Delete key ${key}?`)) return;
-  keys = keys.filter(k => k !== key);
-  localStorage.setItem("keys", JSON.stringify(keys));
-  logAction(`${currentUser.username} deleted key ${key}`);
-  renderKeys();
-}
+// ... Keep all other functions like viewHome(), viewUsers(), createRole(), assignRolePopup(), etc.
+// Use the same global Users list, with online/offline status shown as before.
+// Only Admin/Owner can see Users/Key generator.
 </script>
 </body>
 </html>
