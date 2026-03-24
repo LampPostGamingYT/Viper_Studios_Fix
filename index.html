@@ -73,18 +73,10 @@ textarea{height:80px;resize:none;}
 </div>
 
 <script>
-// ================== CONFIG ==================
-const webhookURL = "https://ptb.discord.com/api/webhooks/1485847717828624585/qetMKy34kRdXJOFNyAPfAKu79X5HDHElmz5jQ16dhNfmM_QWx36pAbPH1pytkEEZulGN"; // replace this
+// CONFIG
+const webhookURL = "YOUR_DISCORD_WEBHOOK_URL"; // put your webhook here
+const sharedKeysURL = "https://yourusername.github.io/viper-dashboard/keys.json"; // shared keys JSON file
 
-function logAction(message){
-  fetch(webhookURL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({content: message})
-  }).catch(console.error);
-}
-
-// ================== VARIABLES ==================
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
 const discordInput = document.getElementById("discord");
@@ -93,77 +85,72 @@ const keyInput = document.getElementById("key");
 const content = document.getElementById("content");
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
+let roles = JSON.parse(localStorage.getItem("roles")) || [];
 let currentUser = null;
 
-// ================== LOGIN/REGISTER ==================
-function login(){
+// HELPER: Discord Webhook log
+function logAction(message){
+  fetch(webhookURL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({content:message})
+  });
+}
+
+// LOGIN
+async function login(){
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
   const key = keyInput.value.trim();
-  if(!username || !password || !key) return alert("Enter username, password & key!");
+  if(!username || !password || !key) return alert("Enter all fields!");
 
-  users = JSON.parse(localStorage.getItem("users")) || [];
-  let keys = JSON.parse(localStorage.getItem("keys")) || [];
-
-  // FIRST OWNER CHECK
-  if(users.length === 0 && key === "viper0118"){
-    keys.push("viper0118");
-    localStorage.setItem("keys", JSON.stringify(keys));
-  }
+  // Fetch keys from shared JSON
+  let keys = [];
+  try{
+    const res = await fetch(sharedKeysURL);
+    keys = await res.json();
+  }catch(e){ console.error("Failed to fetch keys"); return alert("Unable to verify key"); }
 
   if(!keys.includes(key)) return alert("Invalid key!");
 
   let user = users.find(u=>u.username===username);
   if(!user){
-    // FIRST USER WITH KEY = Owner
-    let role = (users.length === 0 && key === "viper0118") ? "Owner" : "User";
-    user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role, warnings:[],banned:false};
+    user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:key==="viper0118"?"Owner":"User",warnings:[],banned:false};
     users.push(user);
     localStorage.setItem("users", JSON.stringify(users));
-    logAction(`New user registered: ${username} (${role})`);
-  } else if(user.password!==password){ 
-    return alert("Wrong password!"); 
-  } else if(user.banned){ 
-    return alert("You are banned"); 
-  }
+    logAction(`New user registered: ${username}`);
+  } else if(user.password!==password){ return alert("Wrong password!"); }
+  else if(user.banned){ return alert("You are banned"); }
 
-  currentUser = user;
+  currentUser=user;
   usernameInput.value=passwordInput.value=discordInput.value=robloxInput.value=keyInput.value="";
   document.getElementById("auth").style.display="none";
   document.getElementById("dashboard").style.display="flex";
   viewHome();
-  logAction(`${currentUser.username} logged in successfully.`);
 }
 
-function logout(){
-  currentUser=null;
-  document.getElementById("dashboard").style.display="none";
-  document.getElementById("auth").style.display="flex";
-  content.innerHTML="";
-}
+// LOGOUT
+function logout(){currentUser=null; document.getElementById("dashboard").style.display="none"; document.getElementById("auth").style.display="flex"; content.innerHTML="";}
 
-// ================== HOME ==================
+// HOME
 function viewHome(){
-  content.innerHTML=`
-    <h2>Welcome, ${currentUser.username}</h2>
+  content.innerHTML=`<h2>Welcome, ${currentUser.username}</h2>
     <div class="card"><h3>Stats</h3><div class="stat">Role: ${currentUser.role}</div></div>
     <div class="card"><h3>Roblox</h3><div class="stat">${currentUser.roblox}</div></div>
-    <div class="card"><h3>Discord</h3><div class="stat">${currentUser.discord}</div></div>
-  `;
+    <div class="card"><h3>Discord</h3><div class="stat">${currentUser.discord}</div></div>`;
 }
 
-// ================== USERS TAB ==================
+// USERS
 function viewUsers(){
   users = JSON.parse(localStorage.getItem("users")) || [];
-  content.innerHTML=`
-    <h2>Players</h2>
+  roles = JSON.parse(localStorage.getItem("roles")) || [];
+  content.innerHTML=`<h2>Players</h2>
     <input id="userSearch" placeholder="Search by username, Discord, or Roblox..." style="width:100%; padding:10px; margin-bottom:15px; border-radius:10px; border:none; background:#1e293b; color:white;">
     <div style="margin-bottom:15px;">
       <input id="newRole" placeholder="New Role Name" style="width:60%; padding:8px; border-radius:10px; border:none; background:#1e293b; color:white;">
       <button onclick="createRole()" style="width:35%; margin-left:5px;">Create Role</button>
     </div>
-    <div class='users-container'></div>
-  `;
+    <div class='users-container'></div>`;
   const container=document.querySelector(".users-container");
   const displayUsers = [currentUser, ...users.filter(u => u.username !== currentUser.username)];
 
@@ -173,12 +160,8 @@ function viewUsers(){
       const realIndex = users.findIndex(x => x.username === u.username);
       let buttonsHTML="";
       if(currentUser.role==="Owner" || u.username===currentUser.username){
-        buttonsHTML=`
-          <button onclick="warnUser(${realIndex})">Warn</button>
-          <button onclick="banUser(${realIndex})">Ban</button>
-        `;
+        buttonsHTML=`<button onclick="warnUser(${realIndex})">Warn</button><button onclick="banUser(${realIndex})">Ban</button>`;
       }
-
       const div=document.createElement("div");
       div.className="user-card";
       div.innerHTML=`<b>${u.username}</b> ${u.banned?"<span class='ban'>(BANNED)</span>":""}<br>
@@ -192,42 +175,35 @@ function viewUsers(){
       container.appendChild(div);
     });
   }
-
   renderUsers(displayUsers);
 
   const searchInput = document.getElementById("userSearch");
   searchInput.addEventListener("input", ()=>{
     const query = searchInput.value.toLowerCase();
-    const filtered = displayUsers.filter(u => 
-      u.username.toLowerCase().includes(query) || 
-      u.discord.toLowerCase().includes(query) || 
-      u.roblox.toLowerCase().includes(query)
-    );
+    const filtered = displayUsers.filter(u => u.username.toLowerCase().includes(query) || u.discord.toLowerCase().includes(query) || u.roblox.toLowerCase().includes(query));
     renderUsers(filtered);
   });
 }
 
-// ================== ROLE ==================
+// CREATE ROLE
 function createRole(){
   const roleInput = document.getElementById("newRole");
   const roleName = roleInput.value.trim();
   if(!roleName) return alert("Enter a role name!");
-  let roles = JSON.parse(localStorage.getItem("roles")) || [];
-  if(roles.includes(roleName)) return alert("Role already exists!");
+  if(roles.includes(roleName)) return alert("Role exists!");
   roles.push(roleName);
   localStorage.setItem("roles", JSON.stringify(roles));
   alert(`Role "${roleName}" created!`);
   roleInput.value="";
-  logAction(`${currentUser.username} created role "${roleName}"`);
+  logAction(`${currentUser.username} created role ${roleName}`);
 }
 
+// ASSIGN ROLE POPUP
 function assignRolePopup(userIndex){
-  let roles = JSON.parse(localStorage.getItem("roles")) || [];
-  if(roles.length===0) return alert("No roles exist! Create a role first.");
-
+  if(roles.length===0) return alert("Create a role first!");
   let html=`<label>Select Role:</label>
-    <select id="roleSelect">${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}</select><br><br>
-    <label><input type="checkbox" id="makeAdmin"> Make Admin?</label><br><br>
+    <select id="roleSelect">${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}</select>
+    <label><input type="checkbox" id="makeAdmin"> Make Admin?</label>
     <button onclick="assignRole(${userIndex})">Assign Role</button>`;
   showPopup("Assign Role", html);
 }
@@ -235,16 +211,18 @@ function assignRolePopup(userIndex){
 function assignRole(userIndex){
   const roleName = document.getElementById("roleSelect").value;
   const makeAdmin = document.getElementById("makeAdmin").checked;
-  users[userIndex].role = makeAdmin ? "Admin" : roleName;
+  users[userIndex].role = roleName;
+  if(makeAdmin) users[userIndex].role = "Admin";
   save();
   closePopup();
   viewUsers();
-  logAction(`${currentUser.username} assigned role "${roleName}" to ${users[userIndex].username} ${makeAdmin ? "(Made Admin)" : ""}`);
+  logAction(`${currentUser.username} assigned role ${users[userIndex].role} to ${users[userIndex].username}`);
 }
 
-// ================== WARN & BAN ==================
+// WARN & BAN
 function warnUser(userIndex){showInfractionPopup(userIndex,'warn');}
 function banUser(userIndex){showInfractionPopup(userIndex,'ban');}
+
 function showInfractionPopup(userIndex,type){
   const u=users[userIndex];
   let html=`<label>Reason:</label>
@@ -252,6 +230,7 @@ function showInfractionPopup(userIndex,type){
     <button onclick="submitInfraction(${userIndex},'${type}')">${type==="warn"?"Issue Warning":"Ban User"}</button>`;
   showPopup(`${type==="warn"?"Warn":"Ban"} User: ${u.username}`, html);
 }
+
 function submitInfraction(userIndex,type){
   const reason=document.getElementById("infractionReason").value.trim();
   if(!reason) return alert("Enter a reason!");
@@ -260,43 +239,31 @@ function submitInfraction(userIndex,type){
   save();
   closePopup();
   viewUsers();
-  logAction(`${currentUser.username} ${type}ed ${users[userIndex].username} for: ${reason}`);
+  logAction(`${currentUser.username} ${type}ed ${users[userIndex].username} for "${reason}"`);
 }
 
-// ================== VIEW WARNINGS ==================
+// VIEW WARNINGS
 function viewWarnings(i){
   const u=users[i];
   document.getElementById("popup").style.display="flex";
   document.getElementById("popupTitle").innerText="Infractions for "+u.username;
-  document.getElementById("popupContent").innerHTML=u.warnings.map(w=>`
-    <div class="card"><b>${w.type.toUpperCase()}</b>: ${w.reason}<br>By: ${w.by}<br>${w.date}</div>
-  `).join("") || "No infractions";
+  document.getElementById("popupContent").innerHTML=u.warnings.map(w=>`<div class="card"><b>${w.type.toUpperCase()}</b>: ${w.reason}<br>By: ${w.by}<br>${w.date}</div>`).join("") || "No infractions";
 }
 
-// ================== POPUP ==================
-function showPopup(title,html){
-  document.getElementById("popupTitle").innerText=title;
-  document.getElementById("popupContent").innerHTML=html;
-  document.getElementById("popup").style.display="flex";
-}
+// POPUP UTIL
+function showPopup(title,html){document.getElementById("popupTitle").innerText=title;document.getElementById("popupContent").innerHTML=html;document.getElementById("popup").style.display="flex";}
 function closePopup(){document.getElementById("popup").style.display="none";}
 function save(){localStorage.setItem("users",JSON.stringify(users));}
 
-// ================== SETTINGS & KEY GENERATOR ==================
-function generateKey() {
-  let keys = JSON.parse(localStorage.getItem("keys")) || [];
-  const key = 'VIP-' + Math.random().toString(36).substring(2,10).toUpperCase();
-  keys.push(key);
-  localStorage.setItem("keys", JSON.stringify(keys));
-  alert(`Generated Key: ${key}`);
-  logAction(`${currentUser.username} generated a new key: ${key}`);
-}
+// SETTINGS
+function viewSettings(){content.innerHTML="<h2>Settings</h2><p>Coming soon...</p>";}
 
-function viewSettings(){
-  content.innerHTML=`
-    <h2>Settings</h2>
-    <button onclick="generateKey()">Generate Key</button>
-  `;
+// KEY GENERATOR (for Admin)
+function generateKey(){
+  const key = "VIP-" + Math.random().toString(36).substring(2,10).toUpperCase();
+  // Update keys.json manually or host somewhere
+  alert("Generated key: "+key+"\nRemember to add it to keys.json for friends to use.");
+  logAction(`${currentUser.username} generated key ${key}`);
 }
 </script>
 </body>
