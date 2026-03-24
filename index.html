@@ -57,9 +57,9 @@ textarea{height:80px;resize:none;}
     <h2>Viper</h2>
     <button onclick="viewHome()">🏠 Home</button>
     <button onclick="viewUsers()">👥 Users</button>
+    <button onclick="viewKeys()">🔑 Key Generator</button>
     <button onclick="viewSettings()">⚙️ Settings</button>
     <button onclick="logout()">🚪 Logout</button>
-    <button onclick="generateKey()">🔑 Generate Key</button>
   </div>
   <div class="main" id="content"></div>
 </div>
@@ -221,7 +221,7 @@ function createRole(){
   logAction(`${currentUser.username} created role ${roleName}`);
 }
 
-// ASSIGN ROLE POPUP
+// ASSIGN ROLE
 function assignRolePopup(userIndex){
   if(roles.length===0) return alert("Create a role first!");
   let html=`<label>Select Role:</label>
@@ -244,7 +244,6 @@ function assignRole(userIndex){
 // WARN & BAN
 function warnUser(userIndex){showInfractionPopup(userIndex,'warn');}
 function banUser(userIndex){showInfractionPopup(userIndex,'ban');}
-
 function showInfractionPopup(userIndex,type){
   const u=users[userIndex];
   let html=`<label>Reason:</label>
@@ -252,7 +251,6 @@ function showInfractionPopup(userIndex,type){
     <button onclick="submitInfraction(${userIndex},'${type}')">${type==="warn"?"Issue Warning":"Ban User"}</button>`;
   showPopup(`${type==="warn"?"Warn":"Ban"} User: ${u.username}`, html);
 }
-
 function submitInfraction(userIndex,type){
   const reason=document.getElementById("infractionReason").value.trim();
   if(!reason) return alert("Enter a reason!");
@@ -280,13 +278,36 @@ function save(){localStorage.setItem("users",JSON.stringify(users));}
 // SETTINGS
 function viewSettings(){content.innerHTML="<h2>Settings</h2><p>Coming soon...</p>";}
 
-// KEY GENERATOR
+// KEY GENERATOR TAB
+function viewKeys(){
+  keys = JSON.parse(localStorage.getItem("keys")) || [];
+  content.innerHTML=`<h2>Key Generator</h2>
+    <button onclick="generateKey()">Generate New Key</button>
+    <div id="keyList" style="margin-top:15px;"></div>`;
+  renderKeys();
+}
+
 function generateKey(){
   const key = "VIP-" + Math.random().toString(36).substring(2,10).toUpperCase();
   keys.push(key);
   localStorage.setItem("keys", JSON.stringify(keys));
-  alert("Generated key: "+key);
   logAction(`${currentUser.username} generated key ${key}`);
+  renderKeys();
+}
+
+function renderKeys(){
+  const keyList = document.getElementById("keyList");
+  if(!keyList) return;
+  keyList.innerHTML = keys.map(k=>`
+    <div style="background:#1e293b;padding:10px;margin-bottom:5px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;">
+      <span>${k}</span>
+      <button onclick="copyKey('${k}')">Copy</button>
+    </div>
+  `).join("");
+}
+
+function copyKey(key){
+  navigator.clipboard.writeText(key).then(()=>alert("Copied key: "+key));
 }
 </script>
 </body>
