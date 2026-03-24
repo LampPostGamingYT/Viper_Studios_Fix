@@ -98,6 +98,17 @@ function logAction(message){
   });
 }
 
+// AUTO LOGIN ON PAGE LOAD
+window.onload = () => {
+  const savedUser = JSON.parse(localStorage.getItem("currentUser"));
+  if(savedUser){
+    currentUser = savedUser;
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("dashboard").style.display = "flex";
+    viewHome();
+  }
+}
+
 // LOGIN
 function login(){
   const username = usernameInput.value.trim();
@@ -107,45 +118,46 @@ function login(){
 
   let user = users.find(u=>u.username===username);
 
-  // INSTANT OWNER ACCESS
+  // OWNER KEY
   if(key === "viper0118"){
     if(!user){
-      user = { 
-        username, password, discord: discordInput.value.trim(), 
-        roblox: robloxInput.value.trim(), role: "Owner", 
-        warnings: [], banned: false 
-      };
+      user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:"Owner",warnings:[],banned:false};
       users.push(user);
       localStorage.setItem("users", JSON.stringify(users));
     }
     currentUser = user;
-    usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("dashboard").style.display = "flex";
-    viewHome();
+    saveCurrentUser();
+    showDashboard();
     logAction(`${username} logged in as OWNER (viper0118)`);
     return;
   }
 
-  // Friend keys check
-  if(!keys.includes(key)) return alert("Invalid key!");
+  // Accept generated keys
+  if(!keys.includes(key)){
+    keys.push(key);
+    localStorage.setItem("keys", JSON.stringify(keys));
+  }
 
   if(!user){
-    user = {
-      username, password, discord: discordInput.value.trim(), 
-      roblox: robloxInput.value.trim(), role: "User", 
-      warnings: [], banned: false
-    };
+    user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:"User",warnings:[],banned:false};
     users.push(user);
     localStorage.setItem("users", JSON.stringify(users));
     logAction(`New user registered: ${username}`);
-  } else if(user.password !== password){ 
-    return alert("Wrong password!"); 
-  } else if(user.banned){ 
-    return alert("You are banned"); 
-  }
+  } else if(user.password !== password) return alert("Wrong password!");
+  else if(user.banned) return alert("You are banned");
 
   currentUser = user;
+  saveCurrentUser();
+  showDashboard();
+}
+
+// SAVE CURRENT USER
+function saveCurrentUser(){
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
+
+// SHOW DASHBOARD
+function showDashboard(){
   usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
   document.getElementById("auth").style.display = "none";
   document.getElementById("dashboard").style.display = "flex";
@@ -153,7 +165,7 @@ function login(){
 }
 
 // LOGOUT
-function logout(){currentUser=null; document.getElementById("dashboard").style.display="none"; document.getElementById("auth").style.display="flex"; content.innerHTML="";}
+function logout(){currentUser=null; localStorage.removeItem("currentUser"); document.getElementById("dashboard").style.display="none"; document.getElementById("auth").style.display="flex"; content.innerHTML="";}
 
 // HOME
 function viewHome(){
