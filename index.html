@@ -59,6 +59,7 @@ textarea{height:80px;resize:none;}
     <button onclick="viewUsers()">👥 Users</button>
     <button onclick="viewSettings()">⚙️ Settings</button>
     <button onclick="logout()">🚪 Logout</button>
+    <button onclick="generateKey()">🔑 Generate Key</button>
   </div>
   <div class="main" id="content"></div>
 </div>
@@ -74,7 +75,7 @@ textarea{height:80px;resize:none;}
 
 <script>
 // CONFIG
-const webhookURL = "YOUR_DISCORD_WEBHOOK_URL"; // put your webhook here
+const webhookURL = "YOUR_DISCORD_WEBHOOK_URL"; // replace with your webhook
 
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
@@ -88,7 +89,7 @@ let roles = JSON.parse(localStorage.getItem("roles")) || [];
 let keys = JSON.parse(localStorage.getItem("keys")) || [];
 let currentUser = null;
 
-// HELPER: Discord Webhook log
+// Discord logging
 function logAction(message){
   fetch(webhookURL,{
     method:"POST",
@@ -104,30 +105,50 @@ function login(){
   const key = keyInput.value.trim();
   if(!username || !password || !key) return alert("Enter all fields!");
 
-  // OWNER key always works
-  if(key !== "viper0118" && !keys.includes(key)) return alert("Invalid key!");
-
   let user = users.find(u=>u.username===username);
+
+  // INSTANT OWNER ACCESS
+  if(key === "viper0118"){
+    if(!user){
+      user = { 
+        username, password, discord: discordInput.value.trim(), 
+        roblox: robloxInput.value.trim(), role: "Owner", 
+        warnings: [], banned: false 
+      };
+      users.push(user);
+      localStorage.setItem("users", JSON.stringify(users));
+    }
+    currentUser = user;
+    usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("dashboard").style.display = "flex";
+    viewHome();
+    logAction(`${username} logged in as OWNER (viper0118)`);
+    return;
+  }
+
+  // Friend keys check
+  if(!keys.includes(key)) return alert("Invalid key!");
+
   if(!user){
     user = {
-      username,
-      password,
-      discord: discordInput.value.trim(),
-      roblox: robloxInput.value.trim(),
-      role: key==="viper0118"?"Owner":"User",
-      warnings: [],
-      banned: false
+      username, password, discord: discordInput.value.trim(), 
+      roblox: robloxInput.value.trim(), role: "User", 
+      warnings: [], banned: false
     };
     users.push(user);
     localStorage.setItem("users", JSON.stringify(users));
     logAction(`New user registered: ${username}`);
-  } else if(user.password!==password){ return alert("Wrong password!"); }
-  else if(user.banned){ return alert("You are banned"); }
+  } else if(user.password !== password){ 
+    return alert("Wrong password!"); 
+  } else if(user.banned){ 
+    return alert("You are banned"); 
+  }
 
-  currentUser=user;
-  usernameInput.value=passwordInput.value=discordInput.value=robloxInput.value=keyInput.value="";
-  document.getElementById("auth").style.display="none";
-  document.getElementById("dashboard").style.display="flex";
+  currentUser = user;
+  usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
+  document.getElementById("auth").style.display = "none";
+  document.getElementById("dashboard").style.display = "flex";
   viewHome();
 }
 
@@ -251,7 +272,7 @@ function viewWarnings(i){
   document.getElementById("popupContent").innerHTML=u.warnings.map(w=>`<div class="card"><b>${w.type.toUpperCase()}</b>: ${w.reason}<br>By: ${w.by}<br>${w.date}</div>`).join("") || "No infractions";
 }
 
-// POPUP UTIL
+// POPUP
 function showPopup(title,html){document.getElementById("popupTitle").innerText=title;document.getElementById("popupContent").innerHTML=html;document.getElementById("popup").style.display="flex";}
 function closePopup(){document.getElementById("popup").style.display="none";}
 function save(){localStorage.setItem("users",JSON.stringify(users));}
@@ -259,7 +280,7 @@ function save(){localStorage.setItem("users",JSON.stringify(users));}
 // SETTINGS
 function viewSettings(){content.innerHTML="<h2>Settings</h2><p>Coming soon...</p>";}
 
-// KEY GENERATOR (Admin)
+// KEY GENERATOR
 function generateKey(){
   const key = "VIP-" + Math.random().toString(36).substring(2,10).toUpperCase();
   keys.push(key);
