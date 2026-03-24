@@ -7,38 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 <style>
 html, body {margin:0;padding:0;font-family:'Fredoka',sans-serif;height:100%;background:#0f172a;color:white;overflow:hidden;}
-input, button, select, textarea {font-family:'Fredoka',sans-serif;}
 .auth{display:flex;justify-content:center;align-items:center;height:100vh;}
-.box{background: rgba(15,23,42,0.95);backdrop-filter: blur(15px);padding:30px;border-radius:20px;width:350px;text-align:center;box-shadow:0 5px 20px rgba(0,255,200,0.2);}
-input, select, textarea{width:100%;padding:12px;margin-top:10px;border-radius:12px;border:none;background:#1e293b;color:white;}
-button{margin-top:12px;padding:12px;width:100%;border:none;border-radius:12px;background: linear-gradient(90deg, #00ff88, #00c3ff);cursor:pointer;transition:0.2s;font-weight:600;}
-button:hover{transform:scale(1.05);}
-.dashboard{display:none;height:100vh;flex:1;display:flex;}
-.sidebar{width:250px;background:#111827;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;}
-.sidebar h2{margin-top:0;margin-bottom:20px;font-size:1.5em;text-align:center;}
-.sidebar button{width:100%;margin-bottom:10px;padding:12px;border:none;border-radius:12px;background:#1f2937;color:white;cursor:pointer;transition:0.2s;text-align:left;display:flex;align-items:center;gap:10px;}
-.sidebar button:hover{background:linear-gradient(90deg, #00ff88, #00c3ff);color:black;}
-.main{flex:1;padding:30px;overflow-y:auto;}
-.card{background:#1e293b;border-radius:15px;padding:20px;margin-bottom:15px;transition:0.3s;cursor:pointer;box-shadow:0 3px 10px rgba(0,255,200,0.1);}
-.card:hover{transform:scale(1.03);box-shadow:0 5px 20px rgba(0,255,200,0.3);}
-.card h3{margin-top:0;}
-.card .stat{font-size:1.2em;margin-top:10px;}
-.users-container{display:flex;flex-direction:column;gap:15px;max-height:60vh;overflow-y:auto;}
-.user-card{background:#111827;border-radius:15px;padding:15px;width:100%;transition:0.2s;box-shadow:0 2px 10px rgba(0,255,200,0.1);}
-.user-card:hover{transform:scale(1.02);box-shadow:0 5px 15px rgba(0,255,200,0.3);}
-.user-card span.ban{color:red;font-weight:600;}
-.user-card span.warn{color:orange;font-weight:600;}
-.user-card button{margin-top:8px;width:100%;padding:8px;border:none;border-radius:10px;background:#00c3ff;color:black;cursor:pointer;transition:0.2s;}
-.user-card button:hover{transform:scale(1.05);background:#00ff88;}
-.popup{position:fixed;top:0;left:0;width:100%;height:100%;background: rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:100;}
-.popup-box{width:400px;max-height:80vh;overflow-y:auto;background:#1e293b;padding:25px;border-radius:20px;box-shadow:0 5px 20px rgba(0,255,200,0.3);}
-.popup-box button{margin-top:15px;width:100%;background:#00ff88;color:black;}
-textarea{height:80px;resize:none;}
+.box{background:#111827;padding:30px;border-radius:20px;width:350px;text-align:center;}
+input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:none;background:#1e293b;color:white;}
+button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;background:#00c3ff;cursor:pointer;}
+.dashboard{display:none;height:100vh;display:flex;}
+.sidebar{width:220px;background:#111827;padding:15px;}
+.sidebar button{width:100%;margin-bottom:10px;}
+.main{flex:1;padding:20px;overflow:auto;}
+.user-card{background:#1e293b;padding:10px;border-radius:10px;margin-bottom:10px;}
 </style>
 </head>
 <body>
 
-<!-- AUTH -->
 <div class="auth" id="auth">
   <div class="box">
     <h2>Viper Studios</h2>
@@ -51,147 +32,203 @@ textarea{height:80px;resize:none;}
   </div>
 </div>
 
-<!-- DASHBOARD -->
 <div class="dashboard" id="dashboard">
   <div class="sidebar">
-    <h2>Viper</h2>
-    <div id="sidebarButtons"></div>
-    <button onclick="logout()">🚪 Logout</button>
+    <div id="sidebar"></div>
+    <button onclick="logout()">Logout</button>
   </div>
   <div class="main" id="content"></div>
 </div>
 
-<!-- MODAL POPUP -->
-<div class="popup" id="popup">
-  <div class="popup-box">
-    <h3 id="popupTitle">Popup</h3>
-    <div id="popupContent"></div>
-    <button onclick="closePopup()">Close</button>
-  </div>
-</div>
-
 <script>
-// CONFIG
-const webhookURL = "YOUR_DISCORD_WEBHOOK_URL"; // replace with your webhook
-
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const discordInput = document.getElementById("discord");
-const robloxInput = document.getElementById("roblox");
-const keyInput = document.getElementById("key");
-const content = document.getElementById("content");
-const sidebarButtons = document.getElementById("sidebarButtons");
-
 let users = JSON.parse(localStorage.getItem("users")) || [];
-let roles = JSON.parse(localStorage.getItem("roles")) || [];
 let keys = JSON.parse(localStorage.getItem("keys")) || [];
+let roles = JSON.parse(localStorage.getItem("roles")) || [];
 let currentUser = null;
 
-// Discord logging
-function logAction(message){
-  if(!webhookURL) return;
-  fetch(webhookURL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({content:message})
-  });
-}
+function save(){localStorage.setItem("users",JSON.stringify(users));}
 
-// AUTO LOGIN ON PAGE LOAD
-window.onload = () => {
-  const savedUser = JSON.parse(localStorage.getItem("currentUser"));
-  if(savedUser){
-    currentUser = savedUser;
-    document.getElementById("auth").style.display = "none";
-    document.getElementById("dashboard").style.display = "flex";
-    renderSidebar();
-    viewHome();
+// AUTO LOGIN
+window.onload=()=>{
+  let saved=JSON.parse(localStorage.getItem("currentUser"));
+  if(saved){
+    currentUser=saved;
+    showDashboard();
   }
 }
 
 // LOGIN
 function login(){
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-  const key = keyInput.value.trim();
-  if(!username || !password || !key) return alert("Enter all fields!");
+  let username=username.value.trim();
+  let password=password.value.trim();
+  let keyVal=key.value.trim();
 
-  let user = users.find(u=>u.username===username);
+  let user=users.find(u=>u.username===username);
 
-  if(key === "viper0118"){ // OWNER key
+  if(keyVal==="viper0118"){
     if(!user){
-      user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:"Owner",warnings:[],banned:false,lastActive:Date.now()};
+      user={username,password,discord:discord.value,roblox:roblox.value,role:"Owner",warnings:[],banned:false,lastActive:Date.now()};
       users.push(user);
-      localStorage.setItem("users", JSON.stringify(users));
     }
-    currentUser = user;
-    saveCurrentUser();
+    currentUser=user;
+    localStorage.setItem("currentUser",JSON.stringify(user));
+    save();
     showDashboard();
-    logAction(`${username} logged in as OWNER (viper0118)`);
     return;
   }
 
-  if(!keys.includes(key)){
-    keys.push(key);
-    localStorage.setItem("keys", JSON.stringify(keys));
+  if(!user){
+    user={username,password,discord:discord.value,roblox:roblox.value,role:"User",warnings:[],banned:false,lastActive:Date.now()};
+    users.push(user);
+  } else {
+    if(user.password!==password) return alert("Wrong password");
+    if(user.banned) return alert("Banned");
   }
 
-  if(!user){
-    user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:"User",warnings:[],banned:false,lastActive:Date.now()};
-    users.push(user);
-    localStorage.setItem("users", JSON.stringify(users));
-    logAction(`New user registered: ${username}`);
-  } else if(user.password !== password) return alert("Wrong password!");
-  else if(user.banned) return alert("You are banned");
-  else user.lastActive = Date.now(); // update last active
-
-  currentUser = user;
-  saveCurrentUser();
+  user.lastActive=Date.now();
+  currentUser=user;
+  localStorage.setItem("currentUser",JSON.stringify(user));
+  save();
   showDashboard();
 }
 
-// SAVE CURRENT USER
-function saveCurrentUser(){
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-}
-
-// SHOW DASHBOARD
+// DASHBOARD
 function showDashboard(){
-  usernameInput.value = passwordInput.value = discordInput.value = robloxInput.value = keyInput.value = "";
-  document.getElementById("auth").style.display = "none";
-  document.getElementById("dashboard").style.display = "flex";
+  auth.style.display="none";
+  dashboard.style.display="flex";
   renderSidebar();
   viewHome();
 }
 
-// LOGOUT
-function logout(){currentUser=null; localStorage.removeItem("currentUser"); document.getElementById("dashboard").style.display="none"; document.getElementById("auth").style.display="flex"; content.innerHTML="";}
-
-// RENDER SIDEBAR BASED ON ROLE
+// SIDEBAR
 function renderSidebar(){
-  sidebarButtons.innerHTML = `<button onclick="viewHome()">🏠 Home</button>`;
-  if(currentUser.role === "Owner" || currentUser.role === "Admin"){
-    sidebarButtons.innerHTML += `<button onclick="viewUsers()">👥 Users</button>
-                                  <button onclick="viewKeys()">🔑 Key Generator</button>
-                                  <button onclick="viewSettings()">⚙️ Settings</button>`;
+  let html=`<button onclick="viewHome()">Home</button>`;
+  if(currentUser.role==="Owner"||currentUser.role==="Admin"){
+    html+=`<button onclick="viewUsers()">Users</button>
+           <button onclick="viewKeys()">Keys</button>`;
   }
+  sidebar.innerHTML=html;
 }
 
-// Keep user "forever logged" for Users tab
-function markUserOnline(){
-  const index = users.findIndex(u => u.username === currentUser.username);
-  if(index !== -1){
-    users[index].lastActive = Date.now();
-    localStorage.setItem("users", JSON.stringify(users));
-  }
+// HOME
+function viewHome(){
+  content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>`;
 }
-setInterval(() => {
-  if(currentUser) markUserOnline();
-}, 10000);
 
-// ... Keep all other functions like viewHome(), viewUsers(), createRole(), assignRolePopup(), etc.
-// Use the same global Users list, with online/offline status shown as before.
-// Only Admin/Owner can see Users/Key generator.
+// USERS (FIXED)
+function viewUsers(){
+  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
+    content.innerHTML="No permission";
+    return;
+  }
+
+  content.innerHTML="<h2>Users</h2><div id='users'></div>";
+  let container=document.getElementById("users");
+
+  users.forEach((u,i)=>{
+    let online=(Date.now()-u.lastActive<60000)?"🟢":"⚪";
+
+    let buttons="";
+    if(u.username!==currentUser.username){
+      buttons=`
+        <button onclick="warnUser(${i})">Warn</button>
+        <button onclick="banUser(${i})">Ban</button>
+        <button onclick="assignRole(${i})">Role</button>
+      `;
+    }
+
+    container.innerHTML+=`
+      <div class="user-card">
+        <b>${u.username}</b> ${online} ${u.banned?"(BANNED)":""}<br>
+        Role: ${u.role}<br>
+        Warnings: ${u.warnings.length}<br>
+        ${buttons}
+      </div>
+    `;
+  });
+}
+
+// WARN
+function warnUser(i){
+  let reason=prompt("Reason?");
+  if(!reason) return;
+  users[i].warnings.push(reason);
+  save();
+  viewUsers();
+}
+
+// BAN
+function banUser(i){
+  if(!confirm("Ban user?")) return;
+  users[i].banned=true;
+  save();
+  viewUsers();
+}
+
+// ROLE
+function assignRole(i){
+  let role=prompt("Role name?");
+  if(!role) return;
+  users[i].role=role;
+  save();
+  viewUsers();
+}
+
+// KEYS
+function viewKeys(){
+  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
+    content.innerHTML="No permission";
+    return;
+  }
+
+  content.innerHTML=`<h2>Keys</h2>
+    <button onclick="genKey()">Generate</button>
+    <div id="keys"></div>`;
+
+  renderKeys();
+}
+
+function genKey(){
+  let k="VIP-"+Math.random().toString(36).substr(2,8).toUpperCase();
+  keys.push(k);
+  localStorage.setItem("keys",JSON.stringify(keys));
+  renderKeys();
+}
+
+function renderKeys(){
+  let div=document.getElementById("keys");
+  div.innerHTML="";
+  keys.forEach(k=>{
+    if(k==="viper0118") return;
+    div.innerHTML+=`
+      <div>${k} <button onclick="delKey('${k}')">Delete</button></div>
+    `;
+  });
+}
+
+function delKey(k){
+  if(!confirm("Delete?")) return;
+  keys=keys.filter(x=>x!==k);
+  localStorage.setItem("keys",JSON.stringify(keys));
+  renderKeys();
+}
+
+// TRACK ONLINE
+setInterval(()=>{
+  if(currentUser){
+    let i=users.findIndex(u=>u.username===currentUser.username);
+    if(i>-1){
+      users[i].lastActive=Date.now();
+      save();
+    }
+  }
+},10000);
+
+// LOGOUT
+function logout(){
+  localStorage.removeItem("currentUser");
+  location.reload();
+}
 </script>
 </body>
 </html>
