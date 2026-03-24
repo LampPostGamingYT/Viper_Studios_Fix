@@ -2,55 +2,101 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Viper Studios Dashboard</title>
+<title>Viper Studios</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 <style>
-html,body{margin:0;padding:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:white;height:100%}
-.auth{display:flex;justify-content:center;align-items:center;height:100vh}
-.box{background:#111827;padding:30px;border-radius:20px;width:320px;text-align:center}
-input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:none;background:#1e293b;color:white}
-button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;background:#00c3ff;cursor:pointer}
-.dashboard{display:none;height:100vh;display:flex}
-.sidebar{width:220px;background:#111827;padding:15px}
-.sidebar button{width:100%;margin-bottom:10px}
-.main{flex:1;padding:20px;overflow:auto}
-.user-card{background:#1e293b;padding:10px;border-radius:10px;margin-bottom:10px}
+body {
+  margin:0;
+  font-family:'Fredoka',sans-serif;
+  background:#0f172a;
+  color:white;
+}
+
+.auth {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.box {
+  background:#111827;
+  padding:25px;
+  border-radius:15px;
+  width:300px;
+  text-align:center;
+}
+
+input {
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#1e293b;
+  color:white;
+}
+
+button {
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  background:#00c3ff;
+  cursor:pointer;
+}
+
+.dashboard {
+  display:none;
+}
+
+.sidebar {
+  width:200px;
+  background:#111827;
+  height:100vh;
+  float:left;
+  padding:10px;
+}
+
+.main {
+  margin-left:200px;
+  padding:20px;
+}
+
+.user-card {
+  background:#1e293b;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:10px;
+}
 </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div class="auth" id="auth">
   <div class="box">
     <h2>Viper Studios</h2>
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-    <input id="discord" placeholder="Discord">
-    <input id="roblox" placeholder="Roblox">
     <input id="key" placeholder="Key">
     <button onclick="login()">Login</button>
   </div>
 </div>
 
+<!-- DASHBOARD -->
 <div class="dashboard" id="dashboard">
-  <div class="sidebar">
-    <div id="sidebar"></div>
-    <button onclick="logout()">Logout</button>
-  </div>
+  <div class="sidebar" id="sidebar"></div>
   <div class="main" id="content"></div>
 </div>
 
 <script>
-// FIX: DEFINE ELEMENTS
+// ELEMENTS
 const auth = document.getElementById("auth");
 const dashboard = document.getElementById("dashboard");
 const sidebar = document.getElementById("sidebar");
 const content = document.getElementById("content");
-const username = document.getElementById("username");
-const password = document.getElementById("password");
-const discord = document.getElementById("discord");
-const roblox = document.getElementById("roblox");
-const key = document.getElementById("key");
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
 let keys = JSON.parse(localStorage.getItem("keys")) || [];
@@ -60,36 +106,40 @@ function save(){
   localStorage.setItem("users", JSON.stringify(users));
 }
 
-// AUTO LOGIN (FIXED)
+// AUTO LOGIN
 window.onload = () => {
   let saved = JSON.parse(localStorage.getItem("currentUser"));
   if(saved){
     currentUser = saved;
-    auth.style.display = "none";
-    dashboard.style.display = "flex";
-    renderSidebar();
-    viewHome(); // FIX BLANK PAGE
+    showDashboard();
   }
 };
 
 // LOGIN
 function login(){
-  let user = users.find(u=>u.username===username.value.trim());
+  let u = document.getElementById("username").value.trim();
+  let p = document.getElementById("password").value.trim();
+  let k = document.getElementById("key").value.trim();
 
-  if(key.value === "viper0118"){
+  if(!u || !p || !k) return alert("Fill everything");
+
+  let user = users.find(x=>x.username===u);
+
+  // 🔥 OWNER KEY (ALWAYS WORKS)
+  if(k === "viper0118"){
     if(!user){
       user = {
-        username: username.value,
-        password: password.value,
-        discord: discord.value,
-        roblox: roblox.value,
-        role: "Owner",
-        warnings: [],
-        banned: false,
-        lastActive: Date.now()
+        username:u,
+        password:p,
+        role:"Owner",
+        warnings:[],
+        banned:false
       };
       users.push(user);
+    } else {
+      user.role = "Owner"; // upgrade if exists
     }
+
     currentUser = user;
     localStorage.setItem("currentUser", JSON.stringify(user));
     save();
@@ -97,24 +147,21 @@ function login(){
     return;
   }
 
+  // NORMAL USERS
   if(!user){
     user = {
-      username: username.value,
-      password: password.value,
-      discord: discord.value,
-      roblox: roblox.value,
-      role: "User",
-      warnings: [],
-      banned: false,
-      lastActive: Date.now()
+      username:u,
+      password:p,
+      role:"User",
+      warnings:[],
+      banned:false
     };
     users.push(user);
   } else {
-    if(user.password !== password.value) return alert("Wrong password");
+    if(user.password !== p) return alert("Wrong password");
     if(user.banned) return alert("You are banned");
   }
 
-  user.lastActive = Date.now();
   currentUser = user;
   localStorage.setItem("currentUser", JSON.stringify(user));
   save();
@@ -124,14 +171,16 @@ function login(){
 // SHOW DASHBOARD
 function showDashboard(){
   auth.style.display = "none";
-  dashboard.style.display = "flex";
+  dashboard.style.display = "block";
   renderSidebar();
   viewHome();
 }
 
 // SIDEBAR
 function renderSidebar(){
-  let html = `<button onclick="viewHome()">Home</button>`;
+  let html = `
+    <button onclick="viewHome()">Home</button>
+  `;
 
   if(currentUser.role === "Owner" || currentUser.role === "Admin"){
     html += `
@@ -139,6 +188,8 @@ function renderSidebar(){
       <button onclick="viewKeys()">Keys</button>
     `;
   }
+
+  html += `<button onclick="logout()">Logout</button>`;
 
   sidebar.innerHTML = html;
 }
@@ -150,32 +201,24 @@ function viewHome(){
 
 // USERS
 function viewUsers(){
-  if(currentUser.role !== "Owner" && currentUser.role !== "Admin"){
-    content.innerHTML = "No permission";
-    return;
-  }
-
-  content.innerHTML = "<h2>Users</h2><div id='users'></div>";
-  let container = document.getElementById("users");
+  content.innerHTML = "<h2>Users</h2>";
 
   users.forEach((u,i)=>{
-    let online = (Date.now() - u.lastActive < 60000) ? "🟢" : "⚪";
-
-    let buttons = "";
-    if(u.username !== currentUser.username){
-      buttons = `
-        <button onclick="warnUser(${i})">Warn</button>
-        <button onclick="banUser(${i})">Ban</button>
-        <button onclick="assignRole(${i})">Role</button>
-      `;
+    let btns = "";
+    if(currentUser.role === "Owner" || currentUser.role === "Admin"){
+      if(u.username !== currentUser.username){
+        btns = `
+          <button onclick="warnUser(${i})">Warn</button>
+          <button onclick="banUser(${i})">Ban</button>
+        `;
+      }
     }
 
-    container.innerHTML += `
+    content.innerHTML += `
       <div class="user-card">
-        <b>${u.username}</b> ${online} ${u.banned ? "(BANNED)" : ""}<br>
-        Role: ${u.role}<br>
+        ${u.username} (${u.role}) ${u.banned?"[BANNED]":""}<br>
         Warnings: ${u.warnings.length}<br>
-        ${buttons}
+        ${btns}
       </div>
     `;
   });
@@ -198,70 +241,25 @@ function banUser(i){
   viewUsers();
 }
 
-// ROLE
-function assignRole(i){
-  let role = prompt("Role?");
-  if(!role) return;
-  users[i].role = role;
-  save();
-  viewUsers();
-}
-
 // KEYS
 function viewKeys(){
-  if(currentUser.role !== "Owner" && currentUser.role !== "Admin"){
-    content.innerHTML = "No permission";
-    return;
-  }
-
   content.innerHTML = `
     <h2>Keys</h2>
     <button onclick="genKey()">Generate Key</button>
-    <div id="keys"></div>
   `;
-  renderKeys();
-}
-
-function genKey(){
-  let k = "VIP-" + Math.random().toString(36).substr(2,8).toUpperCase();
-  keys.push(k);
-  localStorage.setItem("keys", JSON.stringify(keys));
-  renderKeys();
-}
-
-function renderKeys(){
-  let div = document.getElementById("keys");
-  div.innerHTML = "";
 
   keys.forEach(k=>{
     if(k === "viper0118") return;
-
-    div.innerHTML += `
-      <div>
-        ${k}
-        <button onclick="deleteKey('${k}')">Delete</button>
-      </div>
-    `;
+    content.innerHTML += `<div>${k}</div>`;
   });
 }
 
-function deleteKey(k){
-  if(!confirm("Delete this key?")) return;
-  keys = keys.filter(x=>x!==k);
+function genKey(){
+  let k = "VIP-" + Math.random().toString(36).substr(2,8);
+  keys.push(k);
   localStorage.setItem("keys", JSON.stringify(keys));
-  renderKeys();
+  viewKeys();
 }
-
-// TRACK ONLINE
-setInterval(()=>{
-  if(currentUser){
-    let i = users.findIndex(u=>u.username===currentUser.username);
-    if(i > -1){
-      users[i].lastActive = Date.now();
-      save();
-    }
-  }
-}, 10000);
 
 // LOGOUT
 function logout(){
@@ -269,5 +267,6 @@ function logout(){
   location.reload();
 }
 </script>
+
 </body>
 </html>
