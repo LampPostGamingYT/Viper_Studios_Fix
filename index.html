@@ -6,16 +6,16 @@
 <title>Viper Studios Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 <style>
-html, body {margin:0;padding:0;font-family:'Fredoka',sans-serif;height:100%;background:#0f172a;color:white;overflow:hidden;}
-.auth{display:flex;justify-content:center;align-items:center;height:100vh;}
-.box{background:#111827;padding:30px;border-radius:20px;width:350px;text-align:center;}
-input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:none;background:#1e293b;color:white;}
-button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;background:#00c3ff;cursor:pointer;}
-.dashboard{display:none;height:100vh;display:flex;}
-.sidebar{width:220px;background:#111827;padding:15px;}
-.sidebar button{width:100%;margin-bottom:10px;}
-.main{flex:1;padding:20px;overflow:auto;}
-.user-card{background:#1e293b;padding:10px;border-radius:10px;margin-bottom:10px;}
+html,body{margin:0;padding:0;font-family:'Fredoka',sans-serif;background:#0f172a;color:white;height:100%}
+.auth{display:flex;justify-content:center;align-items:center;height:100vh}
+.box{background:#111827;padding:30px;border-radius:20px;width:320px;text-align:center}
+input{width:100%;padding:10px;margin-top:10px;border-radius:10px;border:none;background:#1e293b;color:white}
+button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;background:#00c3ff;cursor:pointer}
+.dashboard{display:none;height:100vh;display:flex}
+.sidebar{width:220px;background:#111827;padding:15px}
+.sidebar button{width:100%;margin-bottom:10px}
+.main{flex:1;padding:20px;overflow:auto}
+.user-card{background:#1e293b;padding:10px;border-radius:10px;margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -41,105 +41,138 @@ button{margin-top:10px;padding:10px;width:100%;border:none;border-radius:10px;ba
 </div>
 
 <script>
+// FIX: DEFINE ELEMENTS
+const auth = document.getElementById("auth");
+const dashboard = document.getElementById("dashboard");
+const sidebar = document.getElementById("sidebar");
+const content = document.getElementById("content");
+const username = document.getElementById("username");
+const password = document.getElementById("password");
+const discord = document.getElementById("discord");
+const roblox = document.getElementById("roblox");
+const key = document.getElementById("key");
+
 let users = JSON.parse(localStorage.getItem("users")) || [];
 let keys = JSON.parse(localStorage.getItem("keys")) || [];
-let roles = JSON.parse(localStorage.getItem("roles")) || [];
 let currentUser = null;
 
-function save(){localStorage.setItem("users",JSON.stringify(users));}
-
-// AUTO LOGIN
-window.onload=()=>{
-  let saved=JSON.parse(localStorage.getItem("currentUser"));
-  if(saved){
-    currentUser=saved;
-    showDashboard();
-  }
+function save(){
+  localStorage.setItem("users", JSON.stringify(users));
 }
+
+// AUTO LOGIN (FIXED)
+window.onload = () => {
+  let saved = JSON.parse(localStorage.getItem("currentUser"));
+  if(saved){
+    currentUser = saved;
+    auth.style.display = "none";
+    dashboard.style.display = "flex";
+    renderSidebar();
+    viewHome(); // FIX BLANK PAGE
+  }
+};
 
 // LOGIN
 function login(){
-  let username=username.value.trim();
-  let password=password.value.trim();
-  let keyVal=key.value.trim();
+  let user = users.find(u=>u.username===username.value.trim());
 
-  let user=users.find(u=>u.username===username);
-
-  if(keyVal==="viper0118"){
+  if(key.value === "viper0118"){
     if(!user){
-      user={username,password,discord:discord.value,roblox:roblox.value,role:"Owner",warnings:[],banned:false,lastActive:Date.now()};
+      user = {
+        username: username.value,
+        password: password.value,
+        discord: discord.value,
+        roblox: roblox.value,
+        role: "Owner",
+        warnings: [],
+        banned: false,
+        lastActive: Date.now()
+      };
       users.push(user);
     }
-    currentUser=user;
-    localStorage.setItem("currentUser",JSON.stringify(user));
+    currentUser = user;
+    localStorage.setItem("currentUser", JSON.stringify(user));
     save();
     showDashboard();
     return;
   }
 
   if(!user){
-    user={username,password,discord:discord.value,roblox:roblox.value,role:"User",warnings:[],banned:false,lastActive:Date.now()};
+    user = {
+      username: username.value,
+      password: password.value,
+      discord: discord.value,
+      roblox: roblox.value,
+      role: "User",
+      warnings: [],
+      banned: false,
+      lastActive: Date.now()
+    };
     users.push(user);
   } else {
-    if(user.password!==password) return alert("Wrong password");
-    if(user.banned) return alert("Banned");
+    if(user.password !== password.value) return alert("Wrong password");
+    if(user.banned) return alert("You are banned");
   }
 
-  user.lastActive=Date.now();
-  currentUser=user;
-  localStorage.setItem("currentUser",JSON.stringify(user));
+  user.lastActive = Date.now();
+  currentUser = user;
+  localStorage.setItem("currentUser", JSON.stringify(user));
   save();
   showDashboard();
 }
 
-// DASHBOARD
+// SHOW DASHBOARD
 function showDashboard(){
-  auth.style.display="none";
-  dashboard.style.display="flex";
+  auth.style.display = "none";
+  dashboard.style.display = "flex";
   renderSidebar();
   viewHome();
 }
 
 // SIDEBAR
 function renderSidebar(){
-  let html=`<button onclick="viewHome()">Home</button>`;
-  if(currentUser.role==="Owner"||currentUser.role==="Admin"){
-    html+=`<button onclick="viewUsers()">Users</button>
-           <button onclick="viewKeys()">Keys</button>`;
+  let html = `<button onclick="viewHome()">Home</button>`;
+
+  if(currentUser.role === "Owner" || currentUser.role === "Admin"){
+    html += `
+      <button onclick="viewUsers()">Users</button>
+      <button onclick="viewKeys()">Keys</button>
+    `;
   }
-  sidebar.innerHTML=html;
+
+  sidebar.innerHTML = html;
 }
 
 // HOME
 function viewHome(){
-  content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>`;
+  content.innerHTML = `<h2>Welcome ${currentUser.username}</h2>`;
 }
 
-// USERS (FIXED)
+// USERS
 function viewUsers(){
-  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
-    content.innerHTML="No permission";
+  if(currentUser.role !== "Owner" && currentUser.role !== "Admin"){
+    content.innerHTML = "No permission";
     return;
   }
 
-  content.innerHTML="<h2>Users</h2><div id='users'></div>";
-  let container=document.getElementById("users");
+  content.innerHTML = "<h2>Users</h2><div id='users'></div>";
+  let container = document.getElementById("users");
 
   users.forEach((u,i)=>{
-    let online=(Date.now()-u.lastActive<60000)?"🟢":"⚪";
+    let online = (Date.now() - u.lastActive < 60000) ? "🟢" : "⚪";
 
-    let buttons="";
-    if(u.username!==currentUser.username){
-      buttons=`
+    let buttons = "";
+    if(u.username !== currentUser.username){
+      buttons = `
         <button onclick="warnUser(${i})">Warn</button>
         <button onclick="banUser(${i})">Ban</button>
         <button onclick="assignRole(${i})">Role</button>
       `;
     }
 
-    container.innerHTML+=`
+    container.innerHTML += `
       <div class="user-card">
-        <b>${u.username}</b> ${online} ${u.banned?"(BANNED)":""}<br>
+        <b>${u.username}</b> ${online} ${u.banned ? "(BANNED)" : ""}<br>
         Role: ${u.role}<br>
         Warnings: ${u.warnings.length}<br>
         ${buttons}
@@ -150,7 +183,7 @@ function viewUsers(){
 
 // WARN
 function warnUser(i){
-  let reason=prompt("Reason?");
+  let reason = prompt("Reason?");
   if(!reason) return;
   users[i].warnings.push(reason);
   save();
@@ -160,69 +193,75 @@ function warnUser(i){
 // BAN
 function banUser(i){
   if(!confirm("Ban user?")) return;
-  users[i].banned=true;
+  users[i].banned = true;
   save();
   viewUsers();
 }
 
 // ROLE
 function assignRole(i){
-  let role=prompt("Role name?");
+  let role = prompt("Role?");
   if(!role) return;
-  users[i].role=role;
+  users[i].role = role;
   save();
   viewUsers();
 }
 
 // KEYS
 function viewKeys(){
-  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
-    content.innerHTML="No permission";
+  if(currentUser.role !== "Owner" && currentUser.role !== "Admin"){
+    content.innerHTML = "No permission";
     return;
   }
 
-  content.innerHTML=`<h2>Keys</h2>
-    <button onclick="genKey()">Generate</button>
-    <div id="keys"></div>`;
-
+  content.innerHTML = `
+    <h2>Keys</h2>
+    <button onclick="genKey()">Generate Key</button>
+    <div id="keys"></div>
+  `;
   renderKeys();
 }
 
 function genKey(){
-  let k="VIP-"+Math.random().toString(36).substr(2,8).toUpperCase();
+  let k = "VIP-" + Math.random().toString(36).substr(2,8).toUpperCase();
   keys.push(k);
-  localStorage.setItem("keys",JSON.stringify(keys));
+  localStorage.setItem("keys", JSON.stringify(keys));
   renderKeys();
 }
 
 function renderKeys(){
-  let div=document.getElementById("keys");
-  div.innerHTML="";
+  let div = document.getElementById("keys");
+  div.innerHTML = "";
+
   keys.forEach(k=>{
-    if(k==="viper0118") return;
-    div.innerHTML+=`
-      <div>${k} <button onclick="delKey('${k}')">Delete</button></div>
+    if(k === "viper0118") return;
+
+    div.innerHTML += `
+      <div>
+        ${k}
+        <button onclick="deleteKey('${k}')">Delete</button>
+      </div>
     `;
   });
 }
 
-function delKey(k){
-  if(!confirm("Delete?")) return;
-  keys=keys.filter(x=>x!==k);
-  localStorage.setItem("keys",JSON.stringify(keys));
+function deleteKey(k){
+  if(!confirm("Delete this key?")) return;
+  keys = keys.filter(x=>x!==k);
+  localStorage.setItem("keys", JSON.stringify(keys));
   renderKeys();
 }
 
 // TRACK ONLINE
 setInterval(()=>{
   if(currentUser){
-    let i=users.findIndex(u=>u.username===currentUser.username);
-    if(i>-1){
-      users[i].lastActive=Date.now();
+    let i = users.findIndex(u=>u.username===currentUser.username);
+    if(i > -1){
+      users[i].lastActive = Date.now();
       save();
     }
   }
-},10000);
+}, 10000);
 
 // LOGOUT
 function logout(){
