@@ -75,7 +75,6 @@ textarea{height:80px;resize:none;}
 <script>
 // CONFIG
 const webhookURL = "YOUR_DISCORD_WEBHOOK_URL"; // put your webhook here
-const sharedKeysURL = "https://yourusername.github.io/viper-dashboard/keys.json"; // shared keys JSON file
 
 const usernameInput = document.getElementById("username");
 const passwordInput = document.getElementById("password");
@@ -86,6 +85,7 @@ const content = document.getElementById("content");
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
 let roles = JSON.parse(localStorage.getItem("roles")) || [];
+let keys = JSON.parse(localStorage.getItem("keys")) || [];
 let currentUser = null;
 
 // HELPER: Discord Webhook log
@@ -98,24 +98,26 @@ function logAction(message){
 }
 
 // LOGIN
-async function login(){
+function login(){
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
   const key = keyInput.value.trim();
   if(!username || !password || !key) return alert("Enter all fields!");
 
-  // Fetch keys from shared JSON
-  let keys = [];
-  try{
-    const res = await fetch(sharedKeysURL);
-    keys = await res.json();
-  }catch(e){ console.error("Failed to fetch keys"); return alert("Unable to verify key"); }
-
-  if(!keys.includes(key)) return alert("Invalid key!");
+  // OWNER key always works
+  if(key !== "viper0118" && !keys.includes(key)) return alert("Invalid key!");
 
   let user = users.find(u=>u.username===username);
   if(!user){
-    user = {username,password,discord:discordInput.value.trim(),roblox:robloxInput.value.trim(),role:key==="viper0118"?"Owner":"User",warnings:[],banned:false};
+    user = {
+      username,
+      password,
+      discord: discordInput.value.trim(),
+      roblox: robloxInput.value.trim(),
+      role: key==="viper0118"?"Owner":"User",
+      warnings: [],
+      banned: false
+    };
     users.push(user);
     localStorage.setItem("users", JSON.stringify(users));
     logAction(`New user registered: ${username}`);
@@ -211,8 +213,7 @@ function assignRolePopup(userIndex){
 function assignRole(userIndex){
   const roleName = document.getElementById("roleSelect").value;
   const makeAdmin = document.getElementById("makeAdmin").checked;
-  users[userIndex].role = roleName;
-  if(makeAdmin) users[userIndex].role = "Admin";
+  users[userIndex].role = makeAdmin ? "Admin" : roleName;
   save();
   closePopup();
   viewUsers();
@@ -258,11 +259,12 @@ function save(){localStorage.setItem("users",JSON.stringify(users));}
 // SETTINGS
 function viewSettings(){content.innerHTML="<h2>Settings</h2><p>Coming soon...</p>";}
 
-// KEY GENERATOR (for Admin)
+// KEY GENERATOR (Admin)
 function generateKey(){
   const key = "VIP-" + Math.random().toString(36).substring(2,10).toUpperCase();
-  // Update keys.json manually or host somewhere
-  alert("Generated key: "+key+"\nRemember to add it to keys.json for friends to use.");
+  keys.push(key);
+  localStorage.setItem("keys", JSON.stringify(keys));
+  alert("Generated key: "+key);
   logAction(`${currentUser.username} generated key ${key}`);
 }
 </script>
