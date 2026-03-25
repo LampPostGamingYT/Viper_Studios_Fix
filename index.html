@@ -13,10 +13,8 @@
   --bg-card:#0f172a;
 }
 
-/* FULL BACKGROUND MATCH */
-html, body {
+html,body{
   margin:0;
-  padding:0;
   height:100%;
   font-family:'Fredoka',sans-serif;
   background:var(--bg-main);
@@ -24,26 +22,18 @@ html, body {
   overflow:hidden;
 }
 
-/* FIX WHITE AUTOFILL */
-input:-webkit-autofill,
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
-  -webkit-text-fill-color: white !important;
-}
-
-/* UI */
+/* LOGIN */
 .auth{display:flex;justify-content:center;align-items:center;height:100vh;}
-
 .box{
-  background:rgba(0,0,0,0.9);
+  background:linear-gradient(145deg,#0f172a,#020617);
   padding:30px;
   border-radius:20px;
   width:350px;
   text-align:center;
-  box-shadow:0 5px 25px rgba(0,170,255,0.2);
+  box-shadow:0 0 25px rgba(0,170,255,0.3);
 }
 
-input, select, textarea{
+input{
   width:100%;
   padding:12px;
   margin-top:10px;
@@ -51,7 +41,6 @@ input, select, textarea{
   border:none;
   background:var(--bg-card);
   color:white;
-  outline:none;
 }
 
 button{
@@ -60,53 +49,43 @@ button{
   width:100%;
   border:none;
   border-radius:12px;
-  background:linear-gradient(90deg,var(--main-color),#0044ff);
+  background:#00aaff; /* LOGIN BUTTON ALWAYS BLUE */
   cursor:pointer;
   transition:0.2s;
   font-weight:600;
 }
 
-button:hover{transform:scale(1.05);}
-
-.dashboard{display:none;height:100vh;display:flex;}
-
-.sidebar{
-  width:250px;
-  background:#020617;
-  padding:20px;
-  display:flex;
-  flex-direction:column;
+button:hover{
+  transform:scale(1.05);
 }
 
+/* DASHBOARD */
+.dashboard{display:none;height:100vh;display:flex;}
+.sidebar{
+  width:220px;
+  background:#020617;
+  padding:15px;
+}
 .sidebar button{
   margin-bottom:10px;
   text-align:left;
 }
-
 .sidebar button:hover{
   background:linear-gradient(90deg,var(--main-color),#0044ff);
 }
-
 .main{
   flex:1;
-  padding:25px;
+  padding:20px;
   overflow-y:auto;
 }
-
-.card{
+.card,.user-card{
   background:var(--bg-card);
-  padding:20px;
-  border-radius:15px;
-  margin-bottom:15px;
-}
-
-.user-card{
-  background:#020617;
   padding:15px;
-  border-radius:15px;
+  border-radius:12px;
   margin-bottom:10px;
 }
 
+/* POPUP BUBBLY */
 .popup{
   position:fixed;
   top:0;left:0;
@@ -115,18 +94,48 @@ button:hover{transform:scale(1.05);}
   display:none;
   justify-content:center;
   align-items:center;
+  z-index:999;
 }
-
 .popup-box{
-  background:var(--bg-card);
-  padding:20px;
-  border-radius:15px;
-  width:400px;
+  background:linear-gradient(145deg,#0f172a,#020617);
+  padding:25px;
+  border-radius:20px;
+  width:350px;
+  box-shadow:0 0 25px rgba(0,170,255,0.3);
+  animation:pop 0.2s ease;
+}
+@keyframes pop{
+  from{transform:scale(0.8);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+.popup-box input{
+  margin-top:10px;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#0f172a;
+  color:white;
 }
 
-/* CLEAN DROPDOWN */
-select{
-  appearance:none;
+/* COLOR BUTTONS IN HOME */
+.color-btns{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
+.color-btns button{
+  width:32%;
+  padding:10px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+}
+.color-btns button:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 10px rgba(0,170,255,0.5);
 }
 </style>
 </head>
@@ -139,8 +148,6 @@ select{
     <h2>Viper Studios</h2>
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-    <input id="discord" placeholder="Discord">
-    <input id="roblox" placeholder="Roblox">
     <input id="key" placeholder="Key">
     <button onclick="login()">Login</button>
   </div>
@@ -152,7 +159,6 @@ select{
     <button onclick="viewHome()">🏠 Home</button>
     <button onclick="viewUsers()">👥 Users</button>
     <button onclick="viewKeys()">🔑 Keys</button>
-    <button onclick="viewSettings()">⚙️ Settings</button>
     <button onclick="logout()">🚪 Logout</button>
   </div>
   <div class="main" id="content"></div>
@@ -167,38 +173,73 @@ select{
   </div>
 </div>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 <script>
-let users=JSON.parse(localStorage.getItem("users"))||[];
-let keys=JSON.parse(localStorage.getItem("keys"))||[];
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "viper-studios-746f8.firebaseapp.com",
+  projectId: "viper-studios-746f8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// GLOBAL VARIABLES
 let currentUser=null;
+let users=[];
+let keys=[];
 
+// ELEMENTS
 const content=document.getElementById("content");
+const popup=document.getElementById("popup");
+const popupTitle=document.getElementById("popupTitle");
+const popupContent=document.getElementById("popupContent");
 
-// LOAD THEME
-const savedTheme=localStorage.getItem("themeColor");
-if(savedTheme){
-  document.documentElement.style.setProperty('--main-color', savedTheme);
+// POPUP FUNCTIONS
+function openPopup(title,html){
+  popup.style.display="flex";
+  popupTitle.innerText=title;
+  popupContent.innerHTML=html;
+}
+function closePopup(){popup.style.display="none";}
+
+// FIREBASE HELPERS
+async function loadUsers(){
+  const snap=await db.collection("users").get();
+  users=snap.docs.map(d=>d.data());
+}
+async function loadKeys(){
+  const snap=await db.collection("keys").get();
+  keys=snap.docs.map(d=>d.data().key);
+}
+async function saveUser(u){
+  await db.collection("users").doc(u.username).set(u);
+}
+async function addKey(k){
+  await db.collection("keys").doc(k).set({key:k});
 }
 
 // LOGIN
-function login(){
+async function login(){
   let u=username.value.trim();
   let p=password.value.trim();
   let k=key.value.trim();
-
   if(!u||!p||!k) return alert("Fill all");
+
+  await loadUsers();
+  await loadKeys();
 
   let user=users.find(x=>x.username===u);
 
   if(k==="viper0118"){
-    if(!user){
-      user={username:u,password:p,role:"Owner",warnings:[],banned:false};
-      users.push(user);
-    } else user.role="Owner";
-
+    if(!user) user={username:u,password:p,role:"Owner",warnings:[],banned:false};
+    else user.role="Owner";
     currentUser=user;
-    save();
-    saveUser();
+    await saveUser(user);
+    localStorage.setItem("session",u);
     showDash();
     return;
   }
@@ -207,116 +248,138 @@ function login(){
 
   if(!user){
     user={username:u,password:p,role:"User",warnings:[],banned:false};
-    users.push(user);
   } else {
     if(user.password!==p) return alert("Wrong password");
     if(user.banned) return alert("Banned");
   }
 
   currentUser=user;
-  save();
-  saveUser();
+  await saveUser(user);
+  localStorage.setItem("session",u);
   showDash();
 }
 
-function save(){localStorage.setItem("users",JSON.stringify(users));}
-function saveUser(){localStorage.setItem("currentUser",JSON.stringify(currentUser));}
-
 // AUTO LOGIN
-window.onload=()=>{
-  let saved=JSON.parse(localStorage.getItem("currentUser"));
+window.onload=async ()=>{
+  let saved=localStorage.getItem("session");
   if(saved){
-    currentUser=saved;
-    showDash();
+    await loadUsers();
+    currentUser=users.find(u=>u.username===saved);
+    if(currentUser) showDash();
   }
-}
+};
 
-// DASH
+// DASHBOARD
 function showDash(){
   auth.style.display="none";
   dashboard.style.display="flex";
   viewHome();
 }
 
-// HOME
+// HOME WITH COLOR BUTTONS
 function viewHome(){
   content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>
-  <div class="card">Role: ${currentUser.role}</div>`;
+  <div class="card">Role: ${currentUser.role}</div>
+  <div class="card">
+    <h3>Change Theme Color</h3>
+    <div class="color-btns">
+      <button style="background:#00aaff;color:white;" onclick="setThemeColor('#00aaff')">Blue</button>
+      <button style="background:#a855f7;color:white;" onclick="setThemeColor('#a855f7')">Purple</button>
+      <button style="background:#ff3b3b;color:white;" onclick="setThemeColor('#ff3b3b')">Red</button>
+    </div>
+  </div>`;
+}
+
+function setThemeColor(c){
+  document.documentElement.style.setProperty('--main-color',c);
+  localStorage.setItem("themeColor",c);
 }
 
 // USERS
-function viewUsers(){
+async function viewUsers(){
   if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
     content.innerHTML="No permission"; return;
   }
 
+  await loadUsers();
   content.innerHTML="<h2>Users</h2>";
-  users.forEach((u,i)=>{
+
+  users.forEach(u=>{
     content.innerHTML+=`
       <div class="user-card">
         ${u.username} (${u.role}) ${u.banned?"[BANNED]":""}<br>
         Warnings: ${u.warnings.length}<br>
-        <button onclick="warn(${i})">Warn</button>
-        <button onclick="ban(${i})">Ban</button>
+        <button onclick="openWarn('${u.username}')">Warn</button>
+        <button onclick="openBan('${u.username}')">Ban</button>
+        <button onclick="viewWarnings('${u.username}')">View Warnings</button>
+        <button onclick="toggleAdmin('${u.username}')">Toggle Admin</button>
       </div>
     `;
   });
 }
 
-// WARN/BAN
-function warn(i){
-  let r=prompt("Reason");
-  if(!r) return;
-  users[i].warnings.push(r);
-  save();
+// WARN/BAN/ADMIN FUNCTIONS
+function openWarn(username){
+  openPopup("Warn User", `<input id="warnReason" placeholder="Enter reason"><button onclick="submitWarn('${username}')">Submit Warning</button>`);
+}
+async function submitWarn(username){
+  let reason=document.getElementById("warnReason").value;
+  if(!reason) return;
+  let doc=await db.collection("users").doc(username).get();
+  let u=doc.data();
+  u.warnings.push(reason);
+  await saveUser(u);
+  closePopup();
   viewUsers();
 }
 
-function ban(i){
-  if(!confirm("Ban?")) return;
-  users[i].banned=true;
-  save();
+function openBan(username){
+  openPopup("Ban User", `<p>Are you sure you want to ban <b>${username}</b>?</p><button onclick="confirmBan('${username}')">Yes, Ban</button>`);
+}
+async function confirmBan(username){
+  let doc=await db.collection("users").doc(username).get();
+  let u=doc.data();
+  u.banned=true;
+  await saveUser(u);
+  closePopup();
   viewUsers();
+}
+
+async function toggleAdmin(username){
+  let doc=await db.collection("users").doc(username).get();
+  let u=doc.data();
+  u.role=(u.role==="Admin")?"User":"Admin";
+  await saveUser(u);
+  viewUsers();
+}
+
+// VIEW WARNINGS
+async function viewWarnings(username){
+  let doc=await db.collection("users").doc(username).get();
+  let u=doc.data();
+  let list = u.warnings.length
+    ? u.warnings.map(w=>`<div class="card">${w}</div>`).join("")
+    : "No warnings";
+  openPopup(`Warnings for ${username}`, list);
 }
 
 // KEYS
-function viewKeys(){
+async function viewKeys(){
+  await loadKeys();
   content.innerHTML=`<h2>Keys</h2><button onclick="gen()">Generate</button>`;
   keys.forEach(k=>{
-    if(k==="viper0118") return;
-    content.innerHTML+=`<div>${k}</div>`;
+    content.innerHTML+=`<div class="card">${k}</div>`;
   });
 }
-
-function gen(){
+async function gen(){
   let k="VIP-"+Math.random().toString(36).substr(2,8);
-  keys.push(k);
-  localStorage.setItem("keys",JSON.stringify(keys));
+  await addKey(k);
   viewKeys();
 }
 
-// SETTINGS (COLOR PICKER)
-function viewSettings(){
-  content.innerHTML=`
-  <h2>Settings</h2>
-  <div class="card">
-    <button onclick="setTheme('#00aaff')">Blue</button>
-    <button onclick="setTheme('#a855f7')">Purple</button>
-    <button onclick="setTheme('#ff3b3b')">Red</button>
-  </div>`;
-}
-
-function setTheme(c){
-  document.documentElement.style.setProperty('--main-color',c);
-  localStorage.setItem("themeColor",c);
-}
-
-// POPUP
-function closePopup(){popup.style.display="none";}
-
 // LOGOUT
 function logout(){
-  localStorage.removeItem("currentUser");
+  localStorage.removeItem("session");
   location.reload();
 }
 </script>
