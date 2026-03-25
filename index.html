@@ -60,7 +60,7 @@ select{appearance:none;}
     <h2>Viper Studios</h2>
     <input id="username" placeholder="Username">
     <input id="password" type="password" placeholder="Password">
-    <input id="key" placeholder="VIP Key (if you have)">
+    <input id="key" placeholder="VIP Key or Owner Key">
     <button onclick="login()">Login</button>
   </div>
 </div>
@@ -139,10 +139,15 @@ async function login() {
 
     // ✅ Auto VIP access for your account
     if(u === "viperxxx_real") role = "VIP";
+
+    // 🔑 Access via key
     else {
       let accessDoc = await getDoc(doc(db,"access",uid));
       if(accessDoc.exists() && accessDoc.data().access === true) role="VIP";
       else if(await checkKey(k)) role="VIP";
+
+      // 🔑 Owner key
+      if(k === "ownerperms") role="Owner";
     }
 
     if(!userDoc.exists()){
