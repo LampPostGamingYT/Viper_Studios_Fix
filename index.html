@@ -1,265 +1,322 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Viper Studios</title>
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Viper Studios Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body{margin:0;font-family:sans-serif;background:#05070d;color:white}
-.dashboard{display:flex;height:100vh}
-.sidebar{width:230px;background:#020617;padding:15px}
-.main{flex:1;padding:20px;overflow:auto}
-
-/* TOAST */
-.toast{
- position:fixed;
- top:20px; right:20px;
- background:#0f172a;
- padding:15px;
- border-radius:10px;
- box-shadow:0 0 15px rgba(0,170,255,0.4);
- animation:fade 0.3s;
+:root{
+  --main-color:#00aaff;
+  --bg-main:#05070d;
+  --bg-card:#0f172a;
 }
-@keyframes fade{from{opacity:0;transform:translateY(-10px)}to{opacity:1}}
 
-.card{background:#0f172a;padding:15px;margin:10px 0;border-radius:10px}
-.online{color:lime}
-.offline{color:gray}
+/* FULL BACKGROUND MATCH */
+html, body {
+  margin:0;
+  padding:0;
+  height:100%;
+  font-family:'Fredoka',sans-serif;
+  background:var(--bg-main);
+  color:white;
+  overflow:hidden;
+}
+
+/* FIX WHITE AUTOFILL */
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* UI */
+.auth{display:flex;justify-content:center;align-items:center;height:100vh;}
+
+.box{
+  background:rgba(0,0,0,0.9);
+  padding:30px;
+  border-radius:20px;
+  width:350px;
+  text-align:center;
+  box-shadow:0 5px 25px rgba(0,170,255,0.2);
+}
+
+input, select, textarea{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+  background:var(--bg-card);
+  color:white;
+  outline:none;
+}
+
+button{
+  margin-top:12px;
+  padding:12px;
+  width:100%;
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(90deg,var(--main-color),#0044ff);
+  cursor:pointer;
+  transition:0.2s;
+  font-weight:600;
+}
+
+button:hover{transform:scale(1.05);}
+
+.dashboard{display:none;height:100vh;display:flex;}
+
+.sidebar{
+  width:250px;
+  background:#020617;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+}
+
+.sidebar button{
+  margin-bottom:10px;
+  text-align:left;
+}
+
+.sidebar button:hover{
+  background:linear-gradient(90deg,var(--main-color),#0044ff);
+}
+
+.main{
+  flex:1;
+  padding:25px;
+  overflow-y:auto;
+}
+
+.card{
+  background:var(--bg-card);
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:15px;
+}
+
+.user-card{
+  background:#020617;
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:10px;
+}
+
+.popup{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  background:rgba(0,0,0,0.6);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.popup-box{
+  background:var(--bg-card);
+  padding:20px;
+  border-radius:15px;
+  width:400px;
+}
+
+/* CLEAN DROPDOWN */
+select{
+  appearance:none;
+}
 </style>
 </head>
 
 <body>
 
-<div class="dashboard" id="dash" style="display:none">
+<!-- LOGIN -->
+<div class="auth" id="auth">
+  <div class="box">
+    <h2>Viper Studios</h2>
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <input id="discord" placeholder="Discord">
+    <input id="roblox" placeholder="Roblox">
+    <input id="key" placeholder="Key">
+    <button onclick="login()">Login</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dashboard" id="dashboard">
   <div class="sidebar">
-    <button onclick="home()">Home</button>
-    <button onclick="usersView()">Users</button>
-    <button onclick="keysView()">Keys</button>
-    <button onclick="logout()">Logout</button>
+    <button onclick="viewHome()">🏠 Home</button>
+    <button onclick="viewUsers()">👥 Users</button>
+    <button onclick="viewKeys()">🔑 Keys</button>
+    <button onclick="viewSettings()">⚙️ Settings</button>
+    <button onclick="logout()">🚪 Logout</button>
   </div>
   <div class="main" id="content"></div>
 </div>
 
-<div id="login">
-  <h2>Login</h2>
-  <input id="user" placeholder="Username"><br>
-  <input id="pass" placeholder="Password"><br>
-  <input id="key" placeholder="Key"><br>
-  <button onclick="login()">Login</button>
+<!-- POPUP -->
+<div class="popup" id="popup">
+  <div class="popup-box">
+    <h3 id="popupTitle"></h3>
+    <div id="popupContent"></div>
+    <button onclick="closePopup()">Close</button>
+  </div>
 </div>
 
 <script>
-// 🔥 FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID",
-  storageBucket: "YOUR_BUCKET",
-  messagingSenderId: "YOUR_MSG",
-  appId: "YOUR_APP"
-};
+let users=JSON.parse(localStorage.getItem("users"))||[];
+let keys=JSON.parse(localStorage.getItem("keys"))||[];
+let currentUser=null;
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const content=document.getElementById("content");
 
-let currentUser = null;
-
-// 🔔 TOAST
-function notify(msg){
-  let t=document.createElement("div");
-  t.className="toast";
-  t.innerText=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),3000);
+// LOAD THEME
+const savedTheme=localStorage.getItem("themeColor");
+if(savedTheme){
+  document.documentElement.style.setProperty('--main-color', savedTheme);
 }
 
 // LOGIN
-async function login(){
-  let u=user.value;
-  let p=pass.value;
-  let k=key.value;
+function login(){
+  let u=username.value.trim();
+  let p=password.value.trim();
+  let k=key.value.trim();
 
-  let doc=await db.collection("users").doc(u).get();
-  let data=doc.data();
+  if(!u||!p||!k) return alert("Fill all");
+
+  let user=users.find(x=>x.username===u);
 
   if(k==="viper0118"){
-    await db.collection("users").doc(u).set({
-      password:p,
-      role:"Owner",
-      online:true,
-      lastActive:Date.now(),
-      warnings:[],
-      banned:false
-    });
-    currentUser={username:u,role:"Owner"};
-    start();
+    if(!user){
+      user={username:u,password:p,role:"Owner",warnings:[],banned:false};
+      users.push(user);
+    } else user.role="Owner";
+
+    currentUser=user;
+    save();
+    saveUser();
+    showDash();
     return;
   }
 
-  if(!doc.exists){
-    await db.collection("users").doc(u).set({
-      password:p,
-      role:"User",
-      online:true,
-      lastActive:Date.now(),
-      warnings:[],
-      banned:false
-    });
-    currentUser={username:u,role:"User"};
-    start();
+  if(!keys.includes(k)) return alert("Invalid key");
+
+  if(!user){
+    user={username:u,password:p,role:"User",warnings:[],banned:false};
+    users.push(user);
   } else {
-    if(data.password!==p) return notify("Wrong password");
-    if(data.banned) return notify("Banned");
+    if(user.password!==p) return alert("Wrong password");
+    if(user.banned) return alert("Banned");
+  }
 
-    currentUser={username:u,role:data.role};
-    await db.collection("users").doc(u).update({
-      online:true,
-      lastActive:Date.now()
-    });
+  currentUser=user;
+  save();
+  saveUser();
+  showDash();
+}
 
-    start();
+function save(){localStorage.setItem("users",JSON.stringify(users));}
+function saveUser(){localStorage.setItem("currentUser",JSON.stringify(currentUser));}
+
+// AUTO LOGIN
+window.onload=()=>{
+  let saved=JSON.parse(localStorage.getItem("currentUser"));
+  if(saved){
+    currentUser=saved;
+    showDash();
   }
 }
 
-// START
-function start(){
-  login.style.display="none";
-  dash.style.display="flex";
-  home();
-  trackOnline();
+// DASH
+function showDash(){
+  auth.style.display="none";
+  dashboard.style.display="flex";
+  viewHome();
 }
 
-// 🟢 ONLINE TRACKING
-function trackOnline(){
-  setInterval(()=>{
-    db.collection("users").doc(currentUser.username).update({
-      lastActive:Date.now()
-    });
-  },5000);
-}
-
-// HOME (STATS)
-async function home(){
-  let snap=await db.collection("users").get();
-
-  let totalUsers=snap.size;
-  let warns=0;
-  let bans=0;
-
-  snap.forEach(doc=>{
-    let d=doc.data();
-    warns+=d.warnings.length;
-    if(d.banned) bans++;
-  });
-
-  content.innerHTML=`
-    <h2>Dashboard</h2>
-    <div class="card">Users: ${totalUsers}</div>
-    <div class="card">Warnings: ${warns}</div>
-    <div class="card">Bans: ${bans}</div>
-  `;
+// HOME
+function viewHome(){
+  content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>
+  <div class="card">Role: ${currentUser.role}</div>`;
 }
 
 // USERS
-function usersView(){
-  content.innerHTML="<h2>Users</h2><div id='users'></div>";
+function viewUsers(){
+  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
+    content.innerHTML="No permission"; return;
+  }
 
-  db.collection("users").onSnapshot(snap=>{
-    let html="";
-    snap.forEach(doc=>{
-      let u=doc.data();
-      let online=(Date.now()-u.lastActive<10000);
-
-      html+=`
-        <div class="card">
-          <b>${doc.id}</b>
-          <span class="${online?'online':'offline'}">
-          ${online?'🟢 Online':'⚪ Offline'}
-          </span><br>
-          Role: ${u.role}<br>
-          Warnings: ${u.warnings.length}<br>
-
-          ${currentUser.role==="Owner" ? `
-          <button onclick="warnUser('${doc.id}')">Warn</button>
-          <button onclick="banUser('${doc.id}')">Ban</button>
-          `:""}
-
-          <button onclick="viewWarns('${doc.id}')">View</button>
-        </div>
-      `;
-    });
-    users.innerHTML=html;
-  });
-}
-
-// WARN
-async function warnUser(id){
-  let reason=prompt("Reason");
-  if(!reason) return;
-
-  let ref=db.collection("users").doc(id);
-  let data=(await ref.get()).data();
-
-  data.warnings.push({
-    reason,
-    by:currentUser.username,
-    date:new Date().toLocaleString()
-  });
-
-  await ref.update({warnings:data.warnings});
-  notify("Warned "+id);
-}
-
-// BAN
-async function banUser(id){
-  let reason=prompt("Reason");
-  if(!reason) return;
-
-  let ref=db.collection("users").doc(id);
-  let data=(await ref.get()).data();
-
-  data.warnings.push({
-    reason:"BAN: "+reason,
-    by:currentUser.username,
-    date:new Date().toLocaleString()
-  });
-
-  await ref.update({
-    warnings:data.warnings,
-    banned:true
-  });
-
-  notify("Banned "+id);
-}
-
-// VIEW WARNINGS
-async function viewWarns(id){
-  let data=(await db.collection("users").doc(id).get()).data();
-
-  content.innerHTML="<h2>Warnings</h2>";
-
-  data.warnings.forEach(w=>{
+  content.innerHTML="<h2>Users</h2>";
+  users.forEach((u,i)=>{
     content.innerHTML+=`
-      <div class="card">
-        ${w.reason}<br>
-        By: ${w.by}<br>
-        ${w.date}
+      <div class="user-card">
+        ${u.username} (${u.role}) ${u.banned?"[BANNED]":""}<br>
+        Warnings: ${u.warnings.length}<br>
+        <button onclick="warn(${i})">Warn</button>
+        <button onclick="ban(${i})">Ban</button>
       </div>
     `;
   });
 }
 
-// KEYS (simple)
-function keysView(){
-  content.innerHTML="<h2>Keys (manual system)</h2>";
+// WARN/BAN
+function warn(i){
+  let r=prompt("Reason");
+  if(!r) return;
+  users[i].warnings.push(r);
+  save();
+  viewUsers();
 }
 
+function ban(i){
+  if(!confirm("Ban?")) return;
+  users[i].banned=true;
+  save();
+  viewUsers();
+}
+
+// KEYS
+function viewKeys(){
+  content.innerHTML=`<h2>Keys</h2><button onclick="gen()">Generate</button>`;
+  keys.forEach(k=>{
+    if(k==="viper0118") return;
+    content.innerHTML+=`<div>${k}</div>`;
+  });
+}
+
+function gen(){
+  let k="VIP-"+Math.random().toString(36).substr(2,8);
+  keys.push(k);
+  localStorage.setItem("keys",JSON.stringify(keys));
+  viewKeys();
+}
+
+// SETTINGS (COLOR PICKER)
+function viewSettings(){
+  content.innerHTML=`
+  <h2>Settings</h2>
+  <div class="card">
+    <button onclick="setTheme('#00aaff')">Blue</button>
+    <button onclick="setTheme('#a855f7')">Purple</button>
+    <button onclick="setTheme('#ff3b3b')">Red</button>
+  </div>`;
+}
+
+function setTheme(c){
+  document.documentElement.style.setProperty('--main-color',c);
+  localStorage.setItem("themeColor",c);
+}
+
+// POPUP
+function closePopup(){popup.style.display="none";}
+
 // LOGOUT
-async function logout(){
-  await db.collection("users").doc(currentUser.username).update({online:false});
+function logout(){
+  localStorage.removeItem("currentUser");
   location.reload();
 }
 </script>
