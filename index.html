@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Viper Studios Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
-
 <style>
 :root{
   --main-color:#00aaff;
   --bg-main:#05070d;
   --bg-card:#0f172a;
 }
-
 html,body{
   margin:0;
   height:100%;
@@ -21,7 +19,6 @@ html,body{
   color:white;
   overflow:hidden;
 }
-
 /* LOGIN */
 .auth{display:flex;justify-content:center;align-items:center;height:100vh;}
 .box{
@@ -32,114 +29,30 @@ html,body{
   text-align:center;
   box-shadow:0 0 25px rgba(0,170,255,0.3);
 }
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:12px;
-  border:none;
-  background:var(--bg-card);
-  color:white;
-}
-
-button{
-  margin-top:12px;
-  padding:12px;
-  width:100%;
-  border:none;
-  border-radius:12px;
-  background:#00aaff; /* LOGIN BUTTON ALWAYS BLUE */
-  cursor:pointer;
-  transition:0.2s;
-  font-weight:600;
-}
-
-button:hover{
-  transform:scale(1.05);
-}
+input{width:100%;padding:12px;margin-top:10px;border-radius:12px;border:none;background:var(--bg-card);color:white;}
+button{margin-top:12px;padding:12px;width:100%;border:none;border-radius:12px;background:#00aaff;cursor:pointer;transition:0.2s;font-weight:600;}
+button:hover{transform:scale(1.05);}
 
 /* DASHBOARD */
 .dashboard{display:none;height:100vh;display:flex;}
-.sidebar{
-  width:220px;
-  background:#020617;
-  padding:15px;
-}
-.sidebar button{
-  margin-bottom:10px;
-  text-align:left;
-}
-.sidebar button:hover{
-  background:linear-gradient(90deg,var(--main-color),#0044ff);
-}
-.main{
-  flex:1;
-  padding:20px;
-  overflow-y:auto;
-}
-.card,.user-card{
-  background:var(--bg-card);
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:10px;
-}
+.sidebar{width:220px;background:#020617;padding:15px;}
+.sidebar button{margin-bottom:10px;text-align:left;}
+.sidebar button:hover{background:linear-gradient(90deg,var(--main-color),#0044ff);}
+.main{flex:1;padding:20px;overflow-y:auto;}
+.card,.user-card{background:var(--bg-card);padding:15px;border-radius:12px;margin-bottom:10px;}
 
 /* POPUP BUBBLY */
-.popup{
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.6);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-}
-.popup-box{
-  background:linear-gradient(145deg,#0f172a,#020617);
-  padding:25px;
-  border-radius:20px;
-  width:350px;
-  box-shadow:0 0 25px rgba(0,170,255,0.3);
-  animation:pop 0.2s ease;
-}
-@keyframes pop{
-  from{transform:scale(0.8);opacity:0;}
-  to{transform:scale(1);opacity:1;}
-}
-.popup-box input{
-  margin-top:10px;
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:none;
-  background:#0f172a;
-  color:white;
-}
-
-/* COLOR BUTTONS IN HOME */
-.color-btns{
-  display:flex;
-  justify-content:space-between;
-  margin-top:10px;
-}
-.color-btns button{
-  width:32%;
-  padding:10px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  font-weight:600;
-  transition:0.2s;
-}
-.color-btns button:hover{
-  transform:scale(1.05);
-  box-shadow:0 0 10px rgba(0,170,255,0.5);
-}
+.popup{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;z-index:999;}
+.popup-box{background:linear-gradient(145deg,#0f172a,#020617);padding:25px;border-radius:20px;width:350px;box-shadow:0 0 25px rgba(0,170,255,0.3);animation:pop 0.2s ease;}
+@keyframes pop{from{transform:scale(0.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+.popup-box input{margin-top:10px;width:100%;padding:10px;border-radius:10px;border:none;background:#0f172a;color:white;}
+.color-btns{display:flex;justify-content:space-between;margin-top:10px;}
+.color-btns button{width:32%;padding:10px;border:none;border-radius:12px;cursor:pointer;font-weight:600;transition:0.2s;}
+.color-btns button:hover{transform:scale(1.05);box-shadow:0 0 10px rgba(0,170,255,0.5);}
+.owner-badge{color:#00ffff;font-weight:700;}
+.admin-badge{color:#ffaa00;font-weight:700;}
 </style>
 </head>
-
 <body>
 
 <!-- LOGIN -->
@@ -179,209 +92,126 @@ button:hover{
 
 <script>
 // FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "viper-studios-746f8.firebaseapp.com",
-  projectId: "viper-studios-746f8"
-};
+const firebaseConfig = {apiKey:"YOUR_KEY",authDomain:"viper-studios-746f8.firebaseapp.com",projectId:"viper-studios-746f8"};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// GLOBAL VARIABLES
+// GLOBALS
 let currentUser=null;
-let users=[];
-let keys=[];
-
-// ELEMENTS
+let users=[],keys=[];
 const content=document.getElementById("content");
 const popup=document.getElementById("popup");
 const popupTitle=document.getElementById("popupTitle");
 const popupContent=document.getElementById("popupContent");
 
-// POPUP FUNCTIONS
-function openPopup(title,html){
-  popup.style.display="flex";
-  popupTitle.innerText=title;
-  popupContent.innerHTML=html;
-}
+// POPUP
+function openPopup(title,html){popup.style.display="flex";popupTitle.innerText=title;popupContent.innerHTML=html;}
 function closePopup(){popup.style.display="none";}
 
 // FIREBASE HELPERS
-async function loadUsers(){
-  const snap=await db.collection("users").get();
-  users=snap.docs.map(d=>d.data());
+async function loadUsers(){const snap=await db.collection("users").get();users=snap.docs.map(d=>d.data());}
+async function loadKeys(){const snap=await db.collection("keys").get();keys=snap.docs.map(d=>d.data().key);}
+async function saveUser(u){await db.collection("users").doc(u.username).set(u);}
+async function addKey(k){await db.collection("keys").doc(k).set({key:k});}
+
+// LIVE LISTENER
+const warningsLast={};
+function listenUser(username){
+  db.collection("users").doc(username).onSnapshot(doc=>{
+    if(!doc.exists) return;
+    const u=doc.data();
+    if(u.banned && currentUser.username===username){
+      openPopup("⛔ You have been banned", "Reason: "+(u.banReason||"No reason provided"));
+      setTimeout(()=>location.reload(),3000);
+    } 
+    // warnings
+    else if(u.warnings.length>0 && currentUser.username===username){
+      const last=warningsLast[username]||0;
+      if(u.warnings.length>last){
+        openPopup("⚠️ You have been warned","Reason: "+u.warnings[u.warnings.length-1]);
+        warningsLast[username]=u.warnings.length;
+      }
+    }
+  });
 }
-async function loadKeys(){
-  const snap=await db.collection("keys").get();
-  keys=snap.docs.map(d=>d.data().key);
-}
-async function saveUser(u){
-  await db.collection("users").doc(u.username).set(u);
-}
-async function addKey(k){
-  await db.collection("keys").doc(k).set({key:k});
+
+// LISTEN ALL USERS FOR ROLE CHANGES
+function listenAllUsers(){
+  db.collection("users").onSnapshot(snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      if(change.type==="modified"){
+        if(currentUser) viewUsers(); // refresh list to update badges instantly
+      }
+    });
+  });
 }
 
 // LOGIN
 async function login(){
-  let u=username.value.trim();
-  let p=password.value.trim();
-  let k=key.value.trim();
+  let u=username.value.trim();let p=password.value.trim();let k=key.value.trim();
   if(!u||!p||!k) return alert("Fill all");
-
-  await loadUsers();
-  await loadKeys();
-
+  await loadUsers();await loadKeys();
   let user=users.find(x=>x.username===u);
-
-  if(k==="viper0118"){
-    if(!user) user={username:u,password:p,role:"Owner",warnings:[],banned:false};
-    else user.role="Owner";
-    currentUser=user;
-    await saveUser(user);
-    localStorage.setItem("session",u);
-    showDash();
-    return;
-  }
-
-  if(!keys.includes(k)) return alert("Invalid key");
-
-  if(!user){
-    user={username:u,password:p,role:"User",warnings:[],banned:false};
-  } else {
-    if(user.password!==p) return alert("Wrong password");
-    if(user.banned) return alert("Banned");
-  }
-
-  currentUser=user;
-  await saveUser(user);
-  localStorage.setItem("session",u);
+  if(k==="viper0118"){if(!user) user={username:u,password:p,role:"Owner",warnings:[],banned:false};else user.role="Owner";}
+  else{if(!keys.includes(k)) return alert("Invalid key");if(!user){user={username:u,password:p,role:"User",warnings:[],banned:false};}else{if(user.password!==p) return alert("Wrong password");if(user.banned) return alert("⛔ You are banned!");}}
+  currentUser=user;await saveUser(user);localStorage.setItem("session",u);
+  listenUser(u);listenAllUsers(); // live updates for user and roles
   showDash();
 }
 
 // AUTO LOGIN
 window.onload=async ()=>{
   let saved=localStorage.getItem("session");
-  if(saved){
-    await loadUsers();
-    currentUser=users.find(u=>u.username===saved);
-    if(currentUser) showDash();
-  }
+  if(saved){await loadUsers();currentUser=users.find(u=>u.username===saved);if(currentUser){listenUser(currentUser.username);listenAllUsers();showDash();}}
 };
 
 // DASHBOARD
-function showDash(){
-  auth.style.display="none";
-  dashboard.style.display="flex";
-  viewHome();
-}
-
-// HOME WITH COLOR BUTTONS
+function showDash(){auth.style.display="none";dashboard.style.display="flex";viewHome();}
 function viewHome(){
-  content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>
+  document.body.style.background=`linear-gradient(145deg,#000000,var(--main-color))`;
+  content.innerHTML=`<h2>Welcome ${currentUser.username} ${currentUser.role==="Owner"?'<span class="owner-badge">(Owner)</span>':''}</h2>
   <div class="card">Role: ${currentUser.role}</div>
-  <div class="card">
-    <h3>Change Theme Color</h3>
-    <div class="color-btns">
-      <button style="background:#00aaff;color:white;" onclick="setThemeColor('#00aaff')">Blue</button>
-      <button style="background:#a855f7;color:white;" onclick="setThemeColor('#a855f7')">Purple</button>
-      <button style="background:#ff3b3b;color:white;" onclick="setThemeColor('#ff3b3b')">Red</button>
-    </div>
-  </div>`;
+  <div class="card"><h3>Change Theme Color (changes BG gradient)</h3>
+  <div class="color-btns">
+  <button style="background:#00aaff;color:white;" onclick="setThemeColor('#00aaff')">Blue</button>
+  <button style="background:#a855f7;color:white;" onclick="setThemeColor('#a855f7')">Purple</button>
+  <button style="background:#ff3b3b;color:white;" onclick="setThemeColor('#ff3b3b')">Red</button>
+  </div></div>`;
 }
-
-function setThemeColor(c){
-  document.documentElement.style.setProperty('--main-color',c);
-  localStorage.setItem("themeColor",c);
-}
+function setThemeColor(c){document.body.style.background=`linear-gradient(145deg,#000000,${c})`;document.documentElement.style.setProperty('--main-color',c);localStorage.setItem("themeColor",c);}
 
 // USERS
 async function viewUsers(){
-  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){
-    content.innerHTML="No permission"; return;
-  }
-
+  if(currentUser.role!=="Owner"&&currentUser.role!=="Admin"){content.innerHTML="No permission"; return;}
   await loadUsers();
   content.innerHTML="<h2>Users</h2>";
-
   users.forEach(u=>{
-    content.innerHTML+=`
-      <div class="user-card">
-        ${u.username} (${u.role}) ${u.banned?"[BANNED]":""}<br>
-        Warnings: ${u.warnings.length}<br>
-        <button onclick="openWarn('${u.username}')">Warn</button>
-        <button onclick="openBan('${u.username}')">Ban</button>
-        <button onclick="viewWarnings('${u.username}')">View Warnings</button>
-        <button onclick="toggleAdmin('${u.username}')">Toggle Admin</button>
-      </div>
-    `;
+    let badge=u.role==="Owner"?'<span class="owner-badge">(Owner)</span>':u.role==="Admin"?'<span class="admin-badge">(Admin)</span>':'';
+    content.innerHTML+=`<div class="user-card">
+      ${u.username} ${badge} ${u.banned?"[BANNED]":""}<br>
+      Warnings: ${u.warnings.length}<br>
+      <button onclick="openWarn('${u.username}')">Warn</button>
+      <button onclick="openBan('${u.username}')">Ban</button>
+      <button onclick="viewWarnings('${u.username}')">View Warnings</button>
+      <button onclick="toggleAdmin('${u.username}')">Toggle Admin</button>
+    </div>`;
   });
 }
 
-// WARN/BAN/ADMIN FUNCTIONS
-function openWarn(username){
-  openPopup("Warn User", `<input id="warnReason" placeholder="Enter reason"><button onclick="submitWarn('${username}')">Submit Warning</button>`);
-}
-async function submitWarn(username){
-  let reason=document.getElementById("warnReason").value;
-  if(!reason) return;
-  let doc=await db.collection("users").doc(username).get();
-  let u=doc.data();
-  u.warnings.push(reason);
-  await saveUser(u);
-  closePopup();
-  viewUsers();
-}
-
-function openBan(username){
-  openPopup("Ban User", `<p>Are you sure you want to ban <b>${username}</b>?</p><button onclick="confirmBan('${username}')">Yes, Ban</button>`);
-}
-async function confirmBan(username){
-  let doc=await db.collection("users").doc(username).get();
-  let u=doc.data();
-  u.banned=true;
-  await saveUser(u);
-  closePopup();
-  viewUsers();
-}
-
-async function toggleAdmin(username){
-  let doc=await db.collection("users").doc(username).get();
-  let u=doc.data();
-  u.role=(u.role==="Admin")?"User":"Admin";
-  await saveUser(u);
-  viewUsers();
-}
-
-// VIEW WARNINGS
-async function viewWarnings(username){
-  let doc=await db.collection("users").doc(username).get();
-  let u=doc.data();
-  let list = u.warnings.length
-    ? u.warnings.map(w=>`<div class="card">${w}</div>`).join("")
-    : "No warnings";
-  openPopup(`Warnings for ${username}`, list);
-}
+// WARN/BAN/ADMIN
+function openWarn(username){if(username==="viper0118"){ alert("Cannot warn the Owner"); return;}openPopup("Warn User", `<input id="warnReason" placeholder="Enter reason"><button onclick="submitWarn('${username}')">Submit Warning</button>`);}
+async function submitWarn(username){let reason=document.getElementById("warnReason").value;if(!reason)return;let doc=await db.collection("users").doc(username).get();let u=doc.data();u.warnings.push(reason);await saveUser(u);closePopup();viewUsers();}
+function openBan(username){if(username==="viper0118"){alert("Cannot ban the Owner");return;}openPopup("Ban User", `<input id="banReason" placeholder="Reason for ban"><button onclick="confirmBan('${username}')">Ban User</button>`);}
+async function confirmBan(username){let reason=document.getElementById("banReason").value||"No reason provided";let doc=await db.collection("users").doc(username).get();let u=doc.data();u.banned=true;u.banReason=reason;await saveUser(u);closePopup();viewUsers();}
+async function toggleAdmin(username){if(username==="viper0118"){alert("Cannot change Owner role");return;}let doc=await db.collection("users").doc(username).get();let u=doc.data();u.role=(u.role==="Admin")?"User":"Admin";await saveUser(u);viewUsers();}
+async function viewWarnings(username){let doc=await db.collection("users").doc(username).get();let u=doc.data();let list=u.warnings.length?u.warnings.map(w=>`<div class="card">${w}</div>`).join(""):"No warnings";openPopup(`Warnings for ${username}`,list);}
 
 // KEYS
-async function viewKeys(){
-  await loadKeys();
-  content.innerHTML=`<h2>Keys</h2><button onclick="gen()">Generate</button>`;
-  keys.forEach(k=>{
-    content.innerHTML+=`<div class="card">${k}</div>`;
-  });
-}
-async function gen(){
-  let k="VIP-"+Math.random().toString(36).substr(2,8);
-  await addKey(k);
-  viewKeys();
-}
+async function viewKeys(){await loadKeys();content.innerHTML=`<h2>Keys</h2><button onclick="gen()">Generate</button>`;keys.forEach(k=>{content.innerHTML+=`<div class="card">${k}</div>`;});}
+async function gen(){let k="VIP-"+Math.random().toString(36).substr(2,8);await addKey(k);viewKeys();}
 
 // LOGOUT
-function logout(){
-  localStorage.removeItem("session");
-  location.reload();
-}
+function logout(){localStorage.removeItem("session");location.reload();}
 </script>
 
 </body>
