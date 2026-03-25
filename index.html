@@ -112,8 +112,7 @@ const popupContent = document.getElementById("popupContent");
 async function checkKey(inputKey) {
   if(!inputKey) return false;
   const keysSnap = await getDocs(collection(db,"keys"));
-  const keyList = keysSnap.docs.map(doc=>doc.data().key);
-  return keyList.includes(inputKey);
+  return keysSnap.docs.some(doc=>doc.data().key === inputKey);
 }
 
 async function genKey() {
@@ -137,14 +136,17 @@ async function login() {
 
     let userDoc = await getDoc(doc(db,"users",uid));
     if(!userDoc.exists()){
-      // First time login
       let role = "User";
-      if(await checkKey(k)) role = "VIP";
+      let accessDoc = await getDoc(doc(db,"access",uid));
+      if(accessDoc.exists() && accessDoc.data().access === true) role="VIP";
+      else if(await checkKey(k)) role="VIP";
+
       await setDoc(doc(db,"users",uid),{
         username:u, role:role, warnings:[], banned:false
       });
       userDoc = await getDoc(doc(db,"users",uid));
     }
+
     currentUser = userDoc.data();
     showDash();
     listenUser(uid);
@@ -191,7 +193,7 @@ async function warn(uid){
   const uDoc = doc(db,"users",uid);
   const uSnap = await getDoc(uDoc);
   const uData = uSnap.data();
-  if(uData.warnings.length>0) return; // only show once
+  if(uData.warnings.length>0) return; // only once
   const reason = prompt("Reason for warning");
   if(!reason) return;
   await updateDoc(uDoc,{warnings:[reason]});
@@ -223,9 +225,7 @@ function openPopup(title,message){
   popupTitle.innerText = title;
   popupContent.innerHTML = message;
 }
-function closePopup(){
-  popup.style.display="none";
-}
+function closePopup(){popup.style.display="none";}
 
 // ---------------------- LISTEN USER ----------------------
 function listenUser(uid){
@@ -270,10 +270,7 @@ function setTheme(c){
 }
 
 // ---------------------- LOGOUT ----------------------
-function logout(){
-  currentUser = null;
-  location.reload();
-}
+function logout(){ currentUser=null; location.reload(); }
 </script>
 </body>
 </html>
