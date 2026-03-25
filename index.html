@@ -14,7 +14,7 @@
 html, body {
   margin:0; padding:0; height:100%;
   font-family:'Fredoka',sans-serif;
-  background:linear-gradient(135deg,var(--bg-main),#0a0a0a);
+  background: linear-gradient(135deg,var(--bg-main),#0a0a0a);
   color:white; overflow:hidden;
 }
 .auth{display:flex;justify-content:center;align-items:center;height:100vh;}
@@ -96,10 +96,8 @@ const popupContent = document.getElementById("popupContent");
 
 // ---------------------- KEYS ----------------------
 function checkKey(inputKey){
-  // Owner key
-  if(inputKey === "ownerperms") return "Owner";
-  // Regular VIP key
-  if(keys.includes(inputKey)) return "VIP";
+  if(inputKey === "ownerperms") return "Owner"; // Owner key
+  if(keys.includes(inputKey)) return "VIP";     // Regular VIP key
   return null;
 }
 
@@ -127,8 +125,7 @@ function login(){
   } else {
     if(user.password !== p) return alert("Wrong password");
     if(user.banned) return alert("You are banned");
-    // update role if key entered
-    user.role = role;
+    user.role = role; // update role if key entered
   }
 
   currentUser = user;
@@ -236,7 +233,8 @@ function viewSettings(){
   </div>`;
 }
 function setTheme(c){
-  document.documentElement.style.setProperty('--bg-main',c);
+  document.body.style.background = `linear-gradient(135deg, ${c}, #0a0a0a)`; // Gradient bg
+  document.documentElement.style.setProperty('--main-color', c); // Buttons
 }
 
 // ---------------------- LOGOUT ----------------------
