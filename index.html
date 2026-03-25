@@ -135,12 +135,17 @@ async function login() {
     const uid = userCred.user.uid;
 
     let userDoc = await getDoc(doc(db,"users",uid));
-    if(!userDoc.exists()){
-      let role = "User";
+    let role = "User";
+
+    // ✅ Auto VIP access for your account
+    if(u === "viperxxx_real") role = "VIP";
+    else {
       let accessDoc = await getDoc(doc(db,"access",uid));
       if(accessDoc.exists() && accessDoc.data().access === true) role="VIP";
       else if(await checkKey(k)) role="VIP";
+    }
 
+    if(!userDoc.exists()){
       await setDoc(doc(db,"users",uid),{
         username:u, role:role, warnings:[], banned:false
       });
@@ -152,6 +157,7 @@ async function login() {
     listenUser(uid);
 
   } catch(e){
+    console.error(e);
     alert("Login failed");
   }
 }
