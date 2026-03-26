@@ -1,264 +1,124 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Viper Studios Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{
-  --main-color:#00aaff;
-  --bg-main:#05070d;
-  --bg-card:#0f172a;
-}
-html, body {
-  margin:0; padding:0; height:100%;
-  font-family:'Fredoka',sans-serif;
-  background: linear-gradient(135deg,var(--bg-main),#0a0a0a);
-  color:white; overflow:hidden;
-}
-.auth{display:flex;justify-content:center;align-items:center;height:100vh;}
-.box{
-  background:rgba(0,0,0,0.9);
-  padding:30px; border-radius:20px;
-  width:350px; text-align:center;
-  box-shadow:0 5px 25px rgba(0,170,255,0.2);
-}
-input, select, textarea{
-  width:100%; padding:12px; margin-top:10px;
-  border-radius:12px; border:none;
-  background:var(--bg-card); color:white; outline:none;
-}
-button{
-  margin-top:12px; padding:12px; width:100%;
-  border:none; border-radius:12px;
-  background:linear-gradient(90deg,var(--main-color),#0044ff);
-  cursor:pointer; transition:0.2s; font-weight:600;
-}
-button:hover{transform:scale(1.05);}
-.dashboard{display:none;height:100vh;display:flex;}
-.sidebar{
-  width:250px; background:#020617;
-  padding:20px; display:flex; flex-direction:column;
-}
-.sidebar button{margin-bottom:10px; text-align:left;}
-.sidebar button:hover{background:linear-gradient(90deg,var(--main-color),#0044ff);}
-.main{flex:1; padding:25px; overflow-y:auto;}
-.card{background:var(--bg-card); padding:20px; border-radius:15px; margin-bottom:15px;}
-.user-card{background:#020617; padding:15px; border-radius:15px; margin-bottom:10px;}
-.admin-btn{
-  background:linear-gradient(90deg,#ffb200,#ff6a00);
-  padding:10px; margin-top:10px; border-radius:15px;
-  font-weight:700; color:white; cursor:pointer; width:100%;
-  transition:0.2s;
-}
-.admin-btn:hover{transform:scale(1.05);}
-.popup{position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center;
-}
-.popup-box{background:var(--bg-card); padding:20px; border-radius:15px; width:400px; text-align:center;}
-select{appearance:none;}
-</style>
-</head>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-<body>
-<div class="auth" id="auth">
-  <div class="box">
-    <h2>Viper Studios</h2>
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
-    <input id="key" placeholder="VIP Key or Owner Key">
-    <button onclick="login()">Login</button>
-  </div>
-</div>
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_BUCKET",
+  messagingSenderId: "YOUR_ID",
+  appId: "YOUR_APP_ID"
+};
 
-<div class="dashboard" id="dashboard">
-  <div class="sidebar">
-    <button onclick="viewHome()">🏠 Home</button>
-    <button onclick="viewUsers()">👥 Users</button>
-    <button onclick="viewKeys()">🔑 Keys</button>
-    <button onclick="viewSettings()">⚙️ Settings</button>
-    <button onclick="logout()">🚪 Logout</button>
-  </div>
-  <div class="main" id="content"></div>
-</div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-<div class="popup" id="popup">
-  <div class="popup-box">
-    <h3 id="popupTitle"></h3>
-    <div id="popupContent"></div>
-    <button onclick="closePopup()">Dismiss</button>
-  </div>
-</div>
-
-<script>
-let users = JSON.parse(localStorage.getItem("users")) || [];
-let keys = JSON.parse(localStorage.getItem("keys")) || [];
 let currentUser = null;
 
-const content = document.getElementById("content");
-const popup = document.getElementById("popup");
-const popupTitle = document.getElementById("popupTitle");
-const popupContent = document.getElementById("popupContent");
-
-// ---------------------- KEYS ----------------------
-function checkKey(inputKey){
-  if(inputKey === "ownerperms") return "Owner"; // Owner key
-  if(keys.includes(inputKey)) return "VIP";     // Regular VIP key
-  return null;
-}
-
-// ---------------------- LOGIN ----------------------
-function login(){
+// ---------------- LOGIN ----------------
+window.login = async function(){
   const u = username.value.trim();
   const p = password.value.trim();
   const k = key.value.trim();
-  if(!u || !p) return alert("Fill all fields");
+
+  if(!u || !p) return alert("Fill fields");
 
   let role = "User";
 
-  // Auto VIP for your account
-  if(u === "viperxxx_real") role = "VIP";
-  else {
-    const keyRole = checkKey(k);
-    if(keyRole) role = keyRole;
-  }
+  if(k === "ownerperms") role = "Owner";
 
-  // Check if user exists
-  let user = users.find(x => x.username === u);
-  if(!user){
-    user = {username:u,password:p,role:role,warnings:[],banned:false};
-    users.push(user);
+  const userRef = doc(db,"users",u);
+  const snap = await getDoc(userRef);
+
+  if(!snap.exists()){
+    await setDoc(userRef,{
+      password:p,
+      role:role,
+      warnings:[],
+      banned:false
+    });
   } else {
-    if(user.password !== p) return alert("Wrong password");
-    if(user.banned) return alert("You are banned");
-    user.role = role; // update role if key entered
+    const data = snap.data();
+    if(data.password !== p) return alert("Wrong password");
+    if(data.banned) return alert("You are banned");
+    role = data.role;
   }
 
-  currentUser = user;
-  localStorage.setItem("currentUser",JSON.stringify(currentUser));
-  localStorage.setItem("users",JSON.stringify(users));
+  currentUser = {username:u, role:role};
   showDash();
-}
+};
 
-// ---------------------- DASHBOARD ----------------------
-function showDash(){
-  auth.style.display = "none";
-  dashboard.style.display = "flex";
-  viewHome();
-}
+// ---------------- USERS ----------------
+window.viewUsers = async function(){
+  const query = await getDocs(collection(db,"users"));
+  content.innerHTML = "<h2>Users</h2>";
 
-function viewHome(){
-  content.innerHTML=`<h2>Welcome ${currentUser.username}</h2>
-  <div class="card">Role: ${currentUser.role}</div>`;
-}
+  query.forEach((docSnap)=>{
+    const data = docSnap.data();
+    const name = docSnap.id;
 
-// ---------------------- USERS ----------------------
-function viewUsers(){
-  if(currentUser.role !== "Owner" && currentUser.role !== "Admin"){
-    content.innerHTML = "No permission"; return;
-  }
-
-  content.innerHTML="<h2>Users</h2>";
-  users.forEach((u,i)=>{
-    content.innerHTML+=`
-      <div class="user-card">
-        ${u.username} (${u.role}) ${u.banned?"[BANNED]":""}<br>
-        Warnings: ${u.warnings.length}<br>
-        <button onclick="warn(${i})">Warn</button>
-        <button onclick="ban(${i})">Ban</button>
-        ${currentUser.role==="Owner" && u.role!=="Owner"? `<button class="admin-btn" onclick="makeAdmin(${i})">Make Admin</button>`:""}
-      </div>
-    `;
+    content.innerHTML += `
+    <div class="user-card">
+      ${name} (${data.role}) ${data.banned?"[BANNED]":""}<br>
+      Warnings: ${data.warnings.length}<br>
+      <button onclick="warnUser('${name}')">Warn</button>
+      <button onclick="banUser('${name}')">Ban</button>
+      ${currentUser.role==="Owner" && data.role!=="Owner" ? 
+        `<button class="admin-btn" onclick="makeAdmin('${name}')">Make Admin</button>`:""}
+    </div>`;
   });
-}
+};
 
-// ---------------------- WARN / BAN ----------------------
-function warn(i){
-  if(users[i].warnings.length>0) return;
-  const reason = prompt("Reason for warning");
+// ---------------- WARN ----------------
+window.warnUser = async function(name){
+  const reason = prompt("Reason?");
   if(!reason) return;
-  users[i].warnings.push(reason);
-  saveUsers();
-  if(users[i].username === currentUser.username){
-    openPopup("⚠ You have been warned","Reason: "+reason);
-  }
+
+  const ref = doc(db,"users",name);
+  const snap = await getDoc(ref);
+  let data = snap.data();
+
+  if(data.warnings.length > 0) return alert("Already warned");
+
+  data.warnings.push(reason);
+
+  await updateDoc(ref,{warnings:data.warnings});
+  alert("Warned!");
   viewUsers();
-}
+};
 
-function ban(i){
-  if(users[i].role==="Owner"){ alert("Cannot ban Owner"); return; }
-  if(!confirm("Ban this user?")) return;
-  users[i].banned = true;
-  saveUsers();
-  if(users[i].username === currentUser.username){
-    openPopup("⛔ You have been banned","You were banned by admin.");
-  }
+// ---------------- BAN ----------------
+window.banUser = async function(name){
+  if(!confirm("Ban user?")) return;
+
+  const ref = doc(db,"users",name);
+  const snap = await getDoc(ref);
+  let data = snap.data();
+
+  if(data.role === "Owner") return alert("Cannot ban owner");
+
+  await updateDoc(ref,{banned:true});
+  alert("Banned!");
   viewUsers();
-}
+};
 
-// ---------------------- ADMIN ----------------------
-function makeAdmin(i){
-  if(users[i].role==="Owner"){ alert("Cannot change Owner"); return; }
-  users[i].role = "Admin";
-  saveUsers();
-  alert(`${users[i].username} is now Admin`);
+// ---------------- ADMIN ----------------
+window.makeAdmin = async function(name){
+  const ref = doc(db,"users",name);
+  const snap = await getDoc(ref);
+  let data = snap.data();
+
+  if(data.role === "Owner") return alert("Cannot change owner");
+
+  await updateDoc(ref,{role:"Admin"});
+  alert(name+" is now Admin");
   viewUsers();
-}
+};
 
-// ---------------------- POPUP ----------------------
-function openPopup(title,message){
-  popup.style.display="flex";
-  popupTitle.innerText = title;
-  popupContent.innerHTML = message;
-}
-function closePopup(){popup.style.display="none";}
-
-// ---------------------- KEYS DASHBOARD ----------------------
-function viewKeys(){
-  content.innerHTML="<h2>Keys</h2><button onclick='genKey()'>Generate Key</button>";
-  keys.forEach(k=>{
-    content.innerHTML+=`<div>${k}</div>`;
-  });
-}
-
-function genKey(){
-  const newKey = "VIP-" + Math.random().toString(36).substr(2,8).toUpperCase();
-  keys.push(newKey);
-  saveKeys();
-  viewKeys();
-  alert("Generated Key: "+newKey);
-}
-
-// ---------------------- SETTINGS ----------------------
-function viewSettings(){
-  content.innerHTML=`<h2>Settings</h2>
-  <div class="card">
-    <button onclick="setTheme('#00aaff')">Blue</button>
-    <button onclick="setTheme('#a855f7')">Purple</button>
-    <button onclick="setTheme('#ff3b3b')">Red</button>
-  </div>`;
-}
-function setTheme(c){
-  document.body.style.background = `linear-gradient(135deg, ${c}, #0a0a0a)`; // Gradient bg
-  document.documentElement.style.setProperty('--main-color', c); // Buttons
-}
-
-// ---------------------- LOGOUT ----------------------
-function logout(){
-  currentUser=null;
-  location.reload();
-}
-
-// ---------------------- LOCAL STORAGE ----------------------
-function saveUsers(){localStorage.setItem("users",JSON.stringify(users));}
-function saveKeys(){localStorage.setItem("keys",JSON.stringify(keys));}
-
-// ---------------------- AUTO LOGIN ----------------------
-window.onload=()=>{
-  const saved = JSON.parse(localStorage.getItem("currentUser"));
-  if(saved){ currentUser=saved; showDash(); }
+// ---------------- THEME ----------------
+window.setTheme = function(c){
+  document.body.style.background = `linear-gradient(135deg, ${c}, #0a0a0a)`;
+  document.documentElement.style.setProperty('--main-color', c);
 };
 </script>
-</body>
-</html>
