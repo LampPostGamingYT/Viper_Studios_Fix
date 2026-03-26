@@ -46,6 +46,13 @@ button:hover{transform:scale(1.05);}
 .main{flex:1; padding:25px; overflow-y:auto;}
 .card{background:var(--bg-card); padding:20px; border-radius:15px; margin-bottom:15px;}
 .user-card{background:#020617; padding:15px; border-radius:15px; margin-bottom:10px;}
+.admin-btn{
+  background:linear-gradient(90deg,#ffb200,#ff6a00);
+  padding:10px; margin-top:10px; border-radius:15px;
+  font-weight:700; color:white; cursor:pointer; width:100%;
+  transition:0.2s;
+}
+.admin-btn:hover{transform:scale(1.05);}
 .popup{position:fixed; top:0; left:0; width:100%; height:100%;
   background:rgba(0,0,0,0.6); display:none; justify-content:center; align-items:center;
 }
@@ -160,7 +167,7 @@ function viewUsers(){
         Warnings: ${u.warnings.length}<br>
         <button onclick="warn(${i})">Warn</button>
         <button onclick="ban(${i})">Ban</button>
-        ${currentUser.role==="Owner" && u.role!=="Owner"? `<button onclick="makeAdmin(${i})">Make Admin</button>`:""}
+        ${currentUser.role==="Owner" && u.role!=="Owner"? `<button class="admin-btn" onclick="makeAdmin(${i})">Make Admin</button>`:""}
       </div>
     `;
   });
